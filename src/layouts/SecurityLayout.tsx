@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageLoading } from '@ant-design/pro-layout';
-import type { ConnectProps } from 'umi';
+import { ConnectProps, useModel } from 'umi';
 import { Redirect, connect } from 'umi';
 import { stringify } from 'querystring';
 import type { ConnectState } from '@/models/connect';
 import type { CurrentUser } from '@/models/user';
+import { getToken } from '@/utils/auth';
 
 type SecurityLayoutProps = {
   loading?: boolean;
@@ -15,41 +16,71 @@ type SecurityLayoutState = {
   isReady: boolean;
 };
 
-class SecurityLayout extends React.Component<SecurityLayoutProps, SecurityLayoutState> {
-  state: SecurityLayoutState = {
-    isReady: false,
-  };
+// class SecurityLayout extends React.Component<SecurityLayoutProps, SecurityLayoutState> {
+//   state: SecurityLayoutState = {
+//     isReady: false,
+//   };
 
-  componentDidMount() {
-    this.setState({
-      isReady: true,
-    });
-    const { dispatch } = this.props;
-    if (dispatch) {
-      dispatch({
-        type: 'user/fetchCurrent',
-      });
-    }
+//   componentDidMount() {
+//     this.setState({
+//       isReady: true,
+//     });
+//     // const { dispatch } = this.props;
+//     // if (dispatch) {
+//     //   dispatch({
+//     //     type: 'user/fetchCurrent',
+//     //   });
+//     // }
+//   }
+
+//   render() {
+//     const { isReady } = this.state;
+//     const { children, loading, currentUser } = this.props;
+//     // You can replace it to your authentication rule (such as check token exists)
+//     // 你可以把它替换成你自己的登录认证规则（比如判断 token 是否存在）
+//     const isLogin = getToken();
+//     const queryString = stringify({
+//       redirect: window.location.href,
+//     });
+
+//     if ((!isLogin && loading) || !isReady) {
+//       return <PageLoading />;
+//     }
+//     if (!isLogin && window.location.pathname !== '/user/login') {
+//       return <Redirect to={`/user/login?${queryString}`} />;
+//     }
+//     return children;
+//   }
+// }
+
+const SecurityLayout: React.FC<SecurityLayoutProps> = (props) => {
+  const { children, loading, currentUser } = props;
+  const [isReady,setIsReady] = useState<boolean>(false);
+  const { initialState } = useModel('@@initialState');
+
+  const isLogin = initialState;
+  const queryString = stringify({
+    redirect: window.location.href,
+  });
+
+
+  useEffect(() => {
+    setIsReady(true)
+    // const { dispatch } = props;
+    // if (dispatch) {
+    //   dispatch({
+    //     type: 'user/fetchCurrent',
+    //   });
+    // }
+  },[])
+
+  if ((!isLogin && loading) || !isReady) {
+    return <PageLoading />;
   }
-
-  render() {
-    const { isReady } = this.state;
-    const { children, loading, currentUser } = this.props;
-    // You can replace it to your authentication rule (such as check token exists)
-    // 你可以把它替换成你自己的登录认证规则（比如判断 token 是否存在）
-    const isLogin = currentUser && currentUser.userid;
-    const queryString = stringify({
-      redirect: window.location.href,
-    });
-
-    if ((!isLogin && loading) || !isReady) {
-      return <PageLoading />;
-    }
-    if (!isLogin && window.location.pathname !== '/user/login') {
-      return <Redirect to={`/user/login?${queryString}`} />;
-    }
-    return children;
+  if (!isLogin && window.location.pathname !== '/user/login') {
+    return <Redirect to={`/user/login?${queryString}`} />;
   }
+  return children;
 }
 
 export default connect(({ user, loading }: ConnectState) => ({

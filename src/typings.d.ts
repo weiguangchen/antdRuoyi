@@ -33,6 +33,8 @@ interface Window {
     fieldsObject: GAFieldsObject | string,
   ) => void;
   reloadAuthorized: () => void;
+  oldRender: any;
+  generateRoutes: any;
 }
 
 declare let ga: () => void;

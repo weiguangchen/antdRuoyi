@@ -9,16 +9,17 @@ import {
   WeiboCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, Space, message, Tabs, Form, Input } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ProForm, { ProFormCaptcha, ProFormCheckbox, ProFormText } from '@ant-design/pro-form';
-import { useIntl, connect, FormattedMessage, useRequest } from 'umi';
+import { useIntl, connect, FormattedMessage, useRequest, useModel, Redirect } from 'umi';
 import { getCaptchaImage, getFakeCaptcha } from '@/services/login';
-import type { Dispatch } from 'umi';
+import type { Dispatch, history } from 'umi';
 import type { StateType } from '@/models/login';
 import type { LoginParamsType } from '@/services/login';
 import type { ConnectState } from '@/models/connect';
 
 import styles from './index.less';
+import { getPageQuery } from '@/utils/utils';
 
 export type LoginProps = {
   dispatch: Dispatch;
@@ -42,25 +43,37 @@ const LoginMessage: React.FC<{
 const Login: React.FC<LoginProps> = (props) => {
   const { userLogin, submitting } = props;
   const { status, errorText, type: loginType } = userLogin;
+  const { initialState, loading } = useModel('@@initialState');
+  const { login }  = useModel('useLoginModel', model => ({ login: model.login}))
   const [type, setType] = useState<string>('account');
   const intl = useIntl();
-
-
-  const handleSubmit = (values: LoginParamsType) => {
-    const { dispatch } = props;
-    dispatch({
-      type: 'login/login',
-      payload: values,
-    }).catch((e:any) => {
-      refreshCaptchaImage()
-    })
-  };
 
   // 验证码
   const { data: captchaImage, refresh: refreshCaptchaImage } = useRequest(getCaptchaImage, {
     formatResult: (res) => res,
-    // manual: true
   });
+  const handleSubmit = (values: LoginParamsType) => {
+    login(values).then(() => {
+      // window.oldRender();
+      // window.location.reload();
+    }).catch(() => refreshCaptchaImage())
+  };
+  
+  if (initialState) {
+    const urlParams = new URL(window.location.href);
+    let { redirect } = getPageQuery() as { redirect: string };
+    if (redirect) {
+      const redirectUrlParams = new URL(redirect);
+      if (redirectUrlParams.origin === urlParams.origin) {
+        redirect = redirect.substr(urlParams.origin.length);
+        window.location.href = redirect;
+      } else {
+        window.location.href = '/';
+      }
+    }else {
+      window.location.href = '/';
+    }
+  }
 
   return (
     <div className={styles.main}>
@@ -79,7 +92,7 @@ const Login: React.FC<LoginProps> = (props) => {
           },
         }}
         onFinish={(values) => {
-          handleSubmit({...values, uuid: captchaImage.uuid } as LoginParamsType);
+          handleSubmit({ ...values, uuid: captchaImage.uuid } as LoginParamsType);
           return Promise.resolve();
         }}
       >
@@ -153,7 +166,7 @@ const Login: React.FC<LoginProps> = (props) => {
             />
             <Form.Item>
               <Form.Item noStyle name="code" rules={[{ required: true, message: '请填写验证码!' }]}>
-                <Input prefix={<VerifiedOutlined className={styles.prefixIcon}/>} style={{ width: 200 }} size="large" placeholder="验证码" />
+                <Input prefix={<VerifiedOutlined className={styles.prefixIcon} />} style={{ width: 200 }} size="large" placeholder="验证码" />
               </Form.Item>
               {!captchaImage ? null : (
                 <img
@@ -161,7 +174,7 @@ const Login: React.FC<LoginProps> = (props) => {
                   style={{ display: 'inline-block', float: 'right', cursor: 'pointer' }}
                   width={110}
                   height={40}
-                  src={'data:image/gif;base64,' + captchaImage.img}
+                  src={`data:image/gif;base64,${  captchaImage.img}`}
                 />
               )}
             </Form.Item>

@@ -22,3 +22,10 @@ export async function getInfo(): Promise<any> {
     method: 'GET',
   });
 }
+
+// 获取菜单
+export async function getRouters(): Promise<any> {
+  return request('/getRouters', {
+    method: 'GET',
+  });
+}

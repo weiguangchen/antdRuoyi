@@ -19,6 +19,7 @@ import RightContent from '@/components/GlobalHeader/RightContent';
 import type { ConnectState } from '@/models/connect';
 import { getMatchMenu } from '@umijs/route-utils';
 import logo from '../assets/logo.svg';
+import { getToken } from '@/utils/auth';
 
 const noMatch = (
   <Result
@@ -91,7 +92,7 @@ const BasicLayout: React.FC<BasicLayoutProps> = (props) => {
   } = props;
   const menuDataRef = useRef<MenuDataItem[]>([]);
   useEffect(() => {
-    if (dispatch) {
+    if (dispatch && getToken()) {
       dispatch({
         type: 'user/fetchCurrent',
       });
@@ -107,7 +108,6 @@ const BasicLayout: React.FC<BasicLayoutProps> = (props) => {
       });
     }
   }; // get children authority
-
   const authorized = useMemo(
     () =>
       getMatchMenu(location.pathname || '/', menuDataRef.current).pop() || {

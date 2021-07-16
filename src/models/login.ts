@@ -1,12 +1,13 @@
 import { stringify } from 'querystring';
-import type { Reducer, Effect } from 'umi';
+import { Reducer, Effect, useModel } from 'umi';
 import { history } from 'umi';
 
-import { Login } from '@/services/login';
+import { Login, LoginParamsType } from '@/services/login';
 import { setAuthority } from '@/utils/authority';
 import { getPageQuery } from '@/utils/utils';
 import { message } from 'antd';
-import { setToken } from '@/utils/auth';
+import { removeToken, setToken } from '@/utils/auth';
+import { useCallback, useState } from 'react';
 
 export type StateType = {
   status?: 'ok' | 'error';
@@ -39,8 +40,6 @@ const Model: LoginModelType = {
     *login({ payload }, { call, put }) {
       try {
         const response = yield call(Login, payload);
-        console.log('login');
-        console.log(response);
         yield put({
           type: 'changeLoginStatus',
           payload: response,
@@ -50,26 +49,26 @@ const Model: LoginModelType = {
           payload: response.token,
         });
         setToken(response.token);
-        yield put({
-          type: 'user/fetchCurrent',
-        });
-        const urlParams = new URL(window.location.href);
-        const params = getPageQuery();
-        message.success('🎉 🎉 🎉  登录成功！');
-        let { redirect } = params as { redirect: string };
-        if (redirect) {
-          const redirectUrlParams = new URL(redirect);
-          if (redirectUrlParams.origin === urlParams.origin) {
-            redirect = redirect.substr(urlParams.origin.length);
-            if (redirect.match(/^\/.*#/)) {
-              redirect = redirect.substr(redirect.indexOf('#') + 1);
-            }
-          } else {
-            window.location.href = '/';
-            return;
-          }
-        }
-        history.replace(redirect || '/');
+        // yield put({
+        //   type: 'user/fetchCurrent',
+        // });
+        // const urlParams = new URL(window.location.href);
+        // const params = getPageQuery();
+        // message.success('🎉 🎉 🎉  登录成功！');
+        // let { redirect } = params as { redirect: string };
+        // if (redirect) {
+        //   const redirectUrlParams = new URL(redirect);
+        //   if (redirectUrlParams.origin === urlParams.origin) {
+        //     redirect = redirect.substr(urlParams.origin.length);
+        //     if (redirect.match(/^\/.*#/)) {
+        //       redirect = redirect.substr(redirect.indexOf('#') + 1);
+        //     }
+        //   } else {
+        //     window.location.href = '/';
+        //     return;
+        //   }
+        // }
+        // history.replace(redirect || '/');
         return Promise.resolve(response);
       } catch (e) {
         yield put({
@@ -86,7 +85,10 @@ const Model: LoginModelType = {
 
     logout() {
       const { redirect } = getPageQuery();
+      // const { refresh } = useModel('@@initialState');
       // Note: There may be security issues, please note
+      removeToken()
+      // refresh()
       if (window.location.pathname !== '/user/login' && !redirect) {
         history.replace({
           pathname: '/user/login',
@@ -119,3 +121,5 @@ const Model: LoginModelType = {
 };
 
 export default Model;
+
+
