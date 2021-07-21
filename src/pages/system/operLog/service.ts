@@ -1,5 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 export async function queryRule(params?: TableListParams) {
   return request('/api/rule', {
@@ -47,7 +47,7 @@ export async function listOperLog(params: TableListParams) {
 
 // 删除操作日志
 export async function delOperlog(operId: number | number[]) {
-  return request('/monitor/operlog/' + operId, {
+  return request(`/monitor/operlog/${  operId}`, {
     method: 'DELETE',
   });
 }

@@ -1,41 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
-
-export async function queryRule(params?: TableListParams) {
-  return request('/api/rule', {
-    params,
-  });
-}
-
-export async function removeRule(params: { key: number[] }) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'delete',
-    },
-  });
-}
-
-export async function addRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'post',
-    },
-  });
-}
-
-export async function updateRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'update',
-    },
-  });
-}
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 // 查询岗位列表
 export async function listPost(params: TableListParams) {
@@ -47,7 +11,7 @@ export async function listPost(params: TableListParams) {
 
 // 查询岗位详细
 export async function getPost(postId: number) {
-  return request('/system/post/' + postId, {
+  return request(`/system/post/${  postId}`, {
     method: 'GET',
   });
 }
@@ -69,9 +33,8 @@ export async function updatePost(data: TableListParams) {
 }
 
 // 删除岗位
-export function delPost(data:any) {
-  return request('/system/post/remove', {
+export function delPost(postId: number | number[]) {
+  return request(`/system/post/${postId}`, {
     method: 'DELETE',
-    data
   });
 }

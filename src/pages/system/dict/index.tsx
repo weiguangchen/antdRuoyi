@@ -3,13 +3,14 @@ import { Button, Divider, message, Input, Drawer, Modal } from 'antd';
 import React, { useState, useRef } from 'react';
 import { useRequest, history, Access, useAccess } from 'umi';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
 import CreateForm from './components/CreateForm';
 import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
+import type { TableListItem } from './data.d';
 import { removeRule, listType, delType } from './service';
-import AddForm from './components/Form';
+import DictForm from './components/Form';
 
 /**
  *  删除节点
@@ -33,10 +34,7 @@ const handleRemove = async (selectedRows: TableListItem[]) => {
 };
 
 const TableList: React.FC<{}> = (props) => {
-  console.log('props');
-  console.log(props);
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
@@ -60,7 +58,7 @@ const TableList: React.FC<{}> = (props) => {
         return (
           <a
             onClick={() => {
-              history.push('/system/dictdata/' + entity.dictId);
+              history.push(`/system/dictdata/${entity.dictId}`);
             }}
           >
             {dom}
@@ -96,7 +94,7 @@ const TableList: React.FC<{}> = (props) => {
         <>
           <a
             onClick={() => {
-              handleUpdateModalVisible(true);
+              setModalVisible(true);
               setUpdateFormValues(record);
             }}
           >
@@ -107,21 +105,17 @@ const TableList: React.FC<{}> = (props) => {
             onClick={() => {
               Modal.confirm({
                 title: '提示',
-                content: '是否确认删除 ' + record.dictName,
+                content: `是否确认删除 ${record.dictName}`,
                 okText: '确认',
                 onOk() {
-                  return new Promise((resolve, reject) => {
-                    delType(record.dictId)
-                      .then((res) => {
-                        if (actionRef.current) actionRef.current.reload();
-                        message.success({ content: '删除字典成功' });
-                        resolve();
-                      })
-                      .catch((err) => {
-                        message.error({ content: '删除字典失败' });
-                        reject();
-                      });
-                  });
+                  return delType(record.dictId)
+                    .then(() => {
+                      if (actionRef.current) actionRef.current.reload();
+                      message.success({ content: '删除字典成功' });
+                    })
+                    .catch(() => {
+                      message.error({ content: '删除字典失败' });
+                    });
                 },
               });
             }}
@@ -143,7 +137,10 @@ const TableList: React.FC<{}> = (props) => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
-          <Button type="primary" onClick={() => handleModalVisible(true)}>
+          <Button type="primary" onClick={() => {
+            setModalVisible(true)
+            setUpdateFormValues({})
+          }}>
             <PlusOutlined /> 新建
           </Button>,
         ]}
@@ -196,26 +193,15 @@ const TableList: React.FC<{}> = (props) => {
         </FooterToolbar>
       )}
 
-      <AddForm
+      <DictForm
+        title={updateFormValues && Object.keys(updateFormValues).length ? '修改字典' : '添加字典'}
         visible={modalVisible}
-        onClose={() => handleModalVisible(false)}
-        onSubmit={() => {
-          handleModalVisible(false);
+        onVisibleChange={setModalVisible}
+        data={updateFormValues}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
       />
-
-      {updateFormValues && Object.keys(updateFormValues).length ? (
-        <AddForm
-          visible={updateModalVisible}
-          onClose={() => handleUpdateModalVisible(false)}
-          onSubmit={() => {
-            handleUpdateModalVisible(false);
-            if (actionRef.current) actionRef.current.reload();
-          }}
-          values={updateFormValues}
-        />
-      ) : null}
 
       <Drawer
         width="60%"

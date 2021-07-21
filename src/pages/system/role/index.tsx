@@ -2,95 +2,34 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Button, Divider, message, Input, Drawer, Switch, Modal } from 'antd';
 import React, { useState, useRef } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
-import CreateForm from './components/CreateForm';
-import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
+import type { TableListItem } from './data.d';
 import {
-  queryRule,
-  updateRule,
-  addRule,
-  removeRule,
   listRole,
   delRole,
   changeRoleStatus,
 } from './service';
 import AddForm from './components/Form';
 import AuthForm from './components/AuthForm';
-
-/**
- * 添加节点
- * @param fields
- */
-const handleAdd = async (fields: TableListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({ ...fields });
-    hide();
-    message.success('添加成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('添加失败请重试！');
-    return false;
-  }
-};
-
-/**
- * 更新节点
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('正在配置');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-
-    message.success('配置成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('配置失败请重试！');
-    return false;
-  }
-};
-
-/**
- *  删除节点
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: TableListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('删除成功，即将刷新');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('删除失败，请重试');
-    return false;
-  }
-};
+import { useRequest } from 'umi';
+import { roleMenuTreeselect } from '../menu/service';
+import { roleDeptTreeselect } from '../dept/service';
 
 const TableList: React.FC<{}> = () => {
   // 添加修改弹框
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   // 数据权限弹框
-  const [authVisible, handleAuthVisible] = useState<boolean>(false);
+  const [authVisible, setAuthVisible] = useState<boolean>(false);
   const [authFormValues, setAuthFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
+
+
+
   const columns: ProColumns<TableListItem>[] = [
     {
       title: '角色编号',
@@ -122,18 +61,14 @@ const TableList: React.FC<{}> = () => {
               content: `是否${checked ? '开启' : '停用'}${record.roleName}`,
               okText: '确认',
               onOk() {
-                return new Promise((resolve, reject) => {
-                  changeRoleStatus(record.roleId, checked ? '0' : '1')
-                    .then((res) => {
-                      if (actionRef.current) actionRef.current.reload();
-                      message.success({ content: `角色已${checked ? '开启' : '停用'}` });
-                      resolve();
-                    })
-                    .catch((err) => {
-                      message.error({ content: `角色${checked ? '开启' : '停用'}失败` });
-                      reject();
-                    });
-                });
+                return changeRoleStatus(record.roleId, checked ? '0' : '1')
+                  .then(() => {
+                    if (actionRef.current) actionRef.current.reload();
+                    message.success({ content: `角色已${checked ? '开启' : '停用'}` });
+                  })
+                  .catch(() => {
+                    message.error({ content: `角色${checked ? '开启' : '停用'}失败` });
+                  });
               },
             });
           }}
@@ -149,51 +84,69 @@ const TableList: React.FC<{}> = () => {
       dataIndex: 'option',
       valueType: 'option',
       render: (_, record) => (
-        <>
-          <a
-            onClick={() => {
-              handleModalVisible(true);
-              setUpdateFormValues(record);
-            }}
-          >
-            修改
+        record.admin ? null : (
+          <>
+            <a
+              onClick={async () => {
+                try {
+                  const { checkedKeys } = await roleMenuTreeselect(record?.roleId);
+                  const data = {
+                    ...record,
+                    menuIds: checkedKeys.map(m => `${m}`)
+                  }
+                  setUpdateFormValues(data);
+                  setModalVisible(true);
+                } catch (err) {
+                  console.log(err)
+                }
+              }}
+            >
+              修改
           </a>
-          <Divider type="vertical" />
-          <a
-            onClick={() => {
-              handleAuthVisible(true);
-              setAuthFormValues(record);
-            }}
-          >
-            数据权限
+            <Divider type="vertical" />
+            <a
+              onClick={async () => {
+                try {
+                  // 获取当前角色可选数据权限和已选权限
+                  const { checkedKeys, depts } = await roleDeptTreeselect(record?.roleId)
+                  const data = {
+                    ...record,
+                    deptIds: checkedKeys,
+                    treeData: depts
+                  }
+                  setAuthFormValues(data);
+                  setAuthVisible(true);
+                } catch (err) {
+                  console.log(err)
+                }
+              }}
+            >
+              数据权限
           </a>
-          <Divider type="vertical" />
-          <a
-            onClick={() => {
-              Modal.confirm({
-                title: '提示',
-                content: '是否确认删除 ' + record.roleName,
-                okText: '确认',
-                onOk() {
-                  return new Promise((resolve, reject) => {
-                    delRole(record.roleId)
-                      .then((res) => {
+            <Divider type="vertical" />
+            <a
+              onClick={() => {
+                Modal.confirm({
+                  title: '提示',
+                  content: `是否确认删除 ${record.roleName}`,
+                  okText: '确认',
+                  onOk() {
+                    return delRole(record.roleId)
+                      .then(() => {
                         if (actionRef.current) actionRef.current.reload();
                         message.success({ content: '删除角色成功' });
-                        resolve();
                       })
-                      .catch((err) => {
+                      .catch(() => {
                         message.error({ content: '删除角色失败' });
-                        reject();
                       });
-                  });
-                },
-              });
-            }}
-          >
-            删除
+                  },
+                });
+              }}
+            >
+              删除
           </a>
-        </>
+          </>
+        )
       ),
     },
   ];
@@ -211,8 +164,8 @@ const TableList: React.FC<{}> = () => {
           <Button
             type="primary"
             onClick={() => {
-              handleModalVisible(true);
               setUpdateFormValues({});
+              setModalVisible(true);
             }}
           >
             <PlusOutlined /> 新建
@@ -270,23 +223,21 @@ const TableList: React.FC<{}> = () => {
       <AddForm
         title={updateFormValues && Object.keys(updateFormValues).length ? '修改角色' : '添加角色'}
         visible={modalVisible}
-        onClose={() => handleModalVisible(false)}
-        onSubmit={() => {
-          handleModalVisible(false);
+        onVisibleChange={setModalVisible}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
-        values={updateFormValues}
+        data={updateFormValues}
       />
 
       <AuthForm
         title="分配数据权限"
         visible={authVisible}
-        onClose={() => handleAuthVisible(false)}
-        onSubmit={() => {
-          handleAuthVisible(false);
+        onVisibleChange={setAuthVisible}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
-        values={authFormValues}
+        data={authFormValues}
       />
 
       <Drawer

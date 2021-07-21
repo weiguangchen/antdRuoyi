@@ -1,81 +1,17 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { Button, Divider, message, Input, Drawer, Modal } from 'antd';
+import { Button, Divider, message, Drawer, Modal } from 'antd';
 import React, { useState, useRef } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
-import CreateForm from './components/CreateForm';
-import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
-import { queryRule, updateRule, addRule, removeRule, listDept, delDept } from './service';
+import type { TableListItem } from './data.d';
+import { listDept, delDept } from './service';
 import AddForm from './components/Form';
 import { handleTree } from '@/utils';
 
-/**
- * 添加节点
- * @param fields
- */
-const handleAdd = async (fields: TableListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({ ...fields });
-    hide();
-    message.success('添加成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('添加失败请重试！');
-    return false;
-  }
-};
-
-/**
- * 更新节点
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('正在配置');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-
-    message.success('配置成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('配置失败请重试！');
-    return false;
-  }
-};
-
-/**
- *  删除节点
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: TableListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('删除成功，即将刷新');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('删除失败，请重试');
-    return false;
-  }
-};
-
 const TableList: React.FC<{}> = () => {
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
@@ -112,7 +48,7 @@ const TableList: React.FC<{}> = () => {
         <>
           <a
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               const row = {
                 ...record,
                 editRoot: record.parentId === 0,
@@ -125,7 +61,7 @@ const TableList: React.FC<{}> = () => {
           <Divider type="vertical" />
           <a
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               setUpdateFormValues({
                 parentId: record.deptId,
               });
@@ -140,21 +76,17 @@ const TableList: React.FC<{}> = () => {
                 onClick={() => {
                   Modal.confirm({
                     title: '提示',
-                    content: '是否确认删除' + record.deptName,
+                    content: `是否确认删除${record.deptName}`,
                     okText: '确认',
                     onOk() {
-                      return new Promise((resolve, reject) => {
-                        delDept(record.deptId)
-                          .then((res) => {
-                            setSelectedRows([]);
-                            actionRef.current?.reloadAndRest?.();
-                            resolve();
-                          })
-                          .catch((err) => {
-                            message.error(err.msg);
-                            reject();
-                          });
-                      });
+                      return delDept(record.deptId)
+                        .then(() => {
+                          setSelectedRows([]);
+                          actionRef.current?.reloadAndRest?.();
+                        })
+                        .catch((err) => {
+                          message.error(err.msg);
+                        });
                     },
                   });
                 }}
@@ -181,30 +113,26 @@ const TableList: React.FC<{}> = () => {
           <Button
             type="primary"
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               setUpdateFormValues({});
             }}
           >
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={(params, sorter, filter) => {
-          return new Promise((resolve, reject) => {
-            listDept({ ...params, sorter, filter }).then((response) => {
-              let menuOptions = handleTree(response.data, 'deptId');
-              console.log('menuOptions');
-              console.log(menuOptions);
-              resolve({
-                data: menuOptions,
-                success: true,
-              });
-            });
-          });
-        }}
+        request={(params, sorter, filter) => (
+          listDept({ ...params, sorter, filter }).then((response) => {
+            const menuOptions = handleTree(response.data, 'deptId');
+            return {
+              data: menuOptions,
+              success: true,
+            }
+          })
+        )}
         columns={columns}
-        // rowSelection={{
-        //   onChange: (_, selectedRows) => setSelectedRows(selectedRows),
-        // }}
+      // rowSelection={{
+      //   onChange: (_, selectedRows) => setSelectedRows(selectedRows),
+      // }}
       />
       {selectedRowsState?.length > 0 && (
         <FooterToolbar
@@ -250,12 +178,11 @@ const TableList: React.FC<{}> = () => {
       <AddForm
         title={updateFormValues && Object.keys(updateFormValues).length ? '修改部门' : '添加部门'}
         visible={modalVisible}
-        onClose={() => handleModalVisible(false)}
-        onSubmit={() => {
-          handleModalVisible(false);
+        onVisibleChange={setModalVisible}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
-        values={updateFormValues}
+        data={updateFormValues}
       />
 
       <Drawer

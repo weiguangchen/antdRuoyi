@@ -2,11 +2,13 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Button, Divider, message, Input, Drawer, Modal } from 'antd';
 import React, { useState, useRef, useMemo } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
 import CreateForm from './components/CreateForm';
-import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
+import type { FormValueType } from './components/UpdateForm';
+import UpdateForm from './components/UpdateForm';
+import type { TableListItem } from './data.d';
 import { queryRule, updateRule, addRule, removeRule, listData, delData } from './service';
 import { getType, getDicts } from '@/pages/System/Dict/service';
 import { useRequest } from 'umi';
@@ -80,15 +82,14 @@ const TableList: React.FC<{}> = (props) => {
     params: { dictId },
   } = match;
 
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
   // 获取字典类型
   const { data: dictData, loading: dictLoading } = useRequest(() => getType(dictId));
-  const { data: statusDict } = useRequest(() => getDicts('mfrs_normal_disable'));
+  // const { data: statusDict } = useRequest(() => getDicts('mfrs_normal_disable'));
 
   const dictType = useMemo(() => {
     return dictData ? dictData.dictType : '';
@@ -139,8 +140,8 @@ const TableList: React.FC<{}> = (props) => {
         <>
           <a
             onClick={() => {
-              handleUpdateModalVisible(true);
               setUpdateFormValues(record);
+              setModalVisible(true);
             }}
           >
             修改
@@ -150,21 +151,17 @@ const TableList: React.FC<{}> = (props) => {
             onClick={() => {
               Modal.confirm({
                 title: '提示',
-                content: '是否确认删除 ' + record.dictLabel,
+                content: `是否确认删除 ${record.dictLabel}`,
                 okText: '确认',
                 onOk() {
-                  return new Promise((resolve, reject) => {
-                    delData(record.dictCode)
-                      .then((res) => {
-                        if (actionRef.current) actionRef.current.reload();
-                        message.success({ content: '删除字典成功' });
-                        resolve();
-                      })
-                      .catch((err) => {
-                        message.error({ content: '删除字典失败' });
-                        reject();
-                      });
-                  });
+                  return delData(record.dictCode)
+                    .then(() => {
+                      if (actionRef.current) actionRef.current.reload();
+                      message.success({ content: '删除字典成功' });
+                    })
+                    .catch(() => {
+                      message.error({ content: '删除字典失败' });
+                    });
                 },
               });
             }}
@@ -187,7 +184,10 @@ const TableList: React.FC<{}> = (props) => {
             labelWidth: 120,
           }}
           toolBarRender={() => [
-            <Button type="primary" onClick={() => handleModalVisible(true)}>
+            <Button type="primary" onClick={() => {
+              setUpdateFormValues({})
+              setModalVisible(true)
+            }}>
               <PlusOutlined /> 新建
             </Button>,
           ]}
@@ -241,29 +241,15 @@ const TableList: React.FC<{}> = (props) => {
       )}
 
       <AddForm
-        title="添加字典"
+        title={updateFormValues && Object.keys(updateFormValues).length ? "修改字典" : "添加字典"}
         visible={modalVisible}
-        onClose={() => handleModalVisible(false)}
-        onSubmit={() => {
-          handleModalVisible(false);
+        onVisibleChange={setModalVisible}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
-        dicttype={dictType}
+        dictData={dictData}
+        data={updateFormValues}
       />
-
-      {updateFormValues && Object.keys(updateFormValues).length ? (
-        <AddForm
-          title="修改字典"
-          visible={updateModalVisible}
-          onClose={() => handleUpdateModalVisible(false)}
-          onSubmit={() => {
-            handleUpdateModalVisible(false);
-            if (actionRef.current) actionRef.current.reload();
-          }}
-          dicttype={dictType}
-          values={updateFormValues}
-        />
-      ) : null}
 
       <Drawer
         width={600}

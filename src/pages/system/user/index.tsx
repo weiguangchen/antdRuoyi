@@ -5,34 +5,25 @@ import {
   message,
   Input,
   Drawer,
-  Row,
-  Col,
-  Tree,
-  Spin,
   Switch,
   Modal,
   Form,
 } from 'antd';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
-import CreateForm from './components/CreateForm';
-import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
+import type { FormValueType } from './components/UpdateForm';
+import type { TableListItem } from './data.d';
 import {
-  queryRule,
-  updateRule,
-  addRule,
-  removeRule,
   listUser,
   changeUserStatus,
   delUser,
   resetUserPwd,
 } from './service';
-import { treeselect } from '@/pages/System/Dept/service';
-import { useRequest } from 'umi';
 import AddForm from './components/Form';
+import { getUser } from './service';
 
 /**
  * 添加节点
@@ -96,17 +87,29 @@ const handleRemove = async (selectedRows: TableListItem[]) => {
   }
 };
 
-const { Search } = Input;
-
 const TableList: React.FC<{}> = () => {
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
-  const [params, setParams] = useState({});
   const [form] = Form.useForm();
+
+  // const { run: runGetUser, loading: userLoading } = useRequest(getUser, {
+  //   manual: true,
+  //   formatResult: (res) => res,
+  //   onSuccess(res) {
+  //     const { data, postIds, posts, roleIds, roles } = res;
+  //     formRef?.current?.setFieldsValue({
+  //       status: '0',
+  //       password: '123456',
+  //       ...data,
+  //       postIds: postIds.map((m) => `${m}`),
+  //       roleIds: roleIds.map((m) => `${m}`),
+  //     });
+  //   },
+  // });
+
   const columns: ProColumns<TableListItem>[] = [
     {
       title: '用户编号',
@@ -142,18 +145,14 @@ const TableList: React.FC<{}> = () => {
               content: `是否${checked ? '开启' : '停用'}${record.nickName}`,
               okText: '确认',
               onOk() {
-                return new Promise((resolve, reject) => {
-                  changeUserStatus(record.userId, checked ? '0' : '1')
-                    .then((res) => {
-                      if (actionRef.current) actionRef.current.reload();
-                      message.success({ content: `用户已${checked ? '开启' : '停用'}` });
-                      resolve();
-                    })
-                    .catch((err) => {
-                      message.error({ content: err.msg });
-                      reject();
-                    });
-                });
+                return changeUserStatus(record.userId, checked ? '0' : '1')
+                  .then(() => {
+                    if (actionRef.current) actionRef.current.reload();
+                    message.success({ content: `用户已${checked ? '开启' : '停用'}` });
+                  })
+                  .catch((err) => {
+                    message.error({ content: err.msg });
+                  });
               },
             });
           }}
@@ -173,9 +172,20 @@ const TableList: React.FC<{}> = () => {
       render: (_, record) => (
         <>
           <a
-            onClick={() => {
-              handleModalVisible(true);
-              setUpdateFormValues(record);
+            onClick={async () => {
+              try {
+                const { userId } = record;
+                const { data, postIds, roleIds } = await getUser(userId);
+                const values = {
+                  data,
+                  postIds: postIds.map((m) => m),
+                  roleIds: roleIds.map((m) => m),
+                }
+                setUpdateFormValues(values);
+                setModalVisible(true);
+              } catch (err) {
+                console.log(err)
+              }
             }}
           >
             修改
@@ -187,21 +197,17 @@ const TableList: React.FC<{}> = () => {
                 onClick={() => {
                   Modal.confirm({
                     title: '提示',
-                    content: '是否确认删除 ' + record.userName,
+                    content: `是否确认删除 ${record.userName}`,
                     okText: '确认',
                     onOk() {
-                      return new Promise((resolve, reject) => {
-                        delUser(record.userId)
-                          .then((res) => {
-                            setSelectedRows([]);
-                            actionRef.current?.reloadAndRest?.();
-                            resolve();
-                          })
-                          .catch((err) => {
-                            message.error(err.msg);
-                            reject();
-                          });
-                      });
+                      return delUser(record.userId)
+                        .then(() => {
+                          setSelectedRows([]);
+                          actionRef.current?.reloadAndRest?.();
+                        })
+                        .catch((err) => {
+                          message.error(err.msg);
+                        });
                     },
                   });
                 }}
@@ -228,19 +234,16 @@ const TableList: React.FC<{}> = () => {
                   </Form>
                 ),
                 onOk() {
-                  return new Promise((resolve, reject) => {
-                    form
-                      .validateFields()
-                      .then((res) => {
-                        const password = form.getFieldValue('password');
-                        return resetUserPwd(record.userId, password);
-                      })
-                      .then((res) => {
-                        form.resetFields();
-                        resolve();
-                      })
-                      .catch((err) => reject());
-                  });
+                  return form
+                    .validateFields()
+                    .then(() => {
+                      const password = form.getFieldValue('password');
+                      return resetUserPwd(record.userId, password);
+                    })
+                    .then(() => {
+                      form.resetFields();
+                      message.success('密码重置成功！')
+                    })
                 },
               });
             }}
@@ -252,113 +255,71 @@ const TableList: React.FC<{}> = () => {
     },
   ];
 
-  // 转成antd所需字段
-  const treeFn = (list) => {
-    return list
-      ? list.map((m) => {
-          m.title = m.label;
-          m.key = m.id;
-          if (m.children) {
-            m.children = treeFn(m.children);
-          }
-          return m;
-        })
-      : [];
-  };
-  // 获取左侧部门树
-  const { data: treeDataRes, loading: treeLoaading } = useRequest(treeselect);
-  const treeData = useMemo(() => treeFn(treeDataRes), [treeDataRes]);
-  // 点击树
-  const onSelect = (selectedKeys) => {
-    setParams({
-      deptId: selectedKeys[0],
-    });
-    actionRef.current.reload();
-  };
-
   return (
     <PageContainer>
-      <Row gutter={20} style={{ background: '#fff' }}>
-        <Col span={6}>
-          <Spin spinning={treeLoaading}>
-            <div style={{ padding: '24px' }}>
-              {treeLoaading ? null : (
-                <Tree
-                  defaultExpandAll
-                  autoExpandParent={true}
-                  treeData={treeData}
-                  onSelect={onSelect}
-                />
-              )}
-            </div>
-          </Spin>
-        </Col>
-        <Col span={18}>
-          <ProTable<TableListItem>
-            headerTitle="查询表格"
-            actionRef={actionRef}
-            rowKey="userId"
-            search={{
-              labelWidth: 120,
+      <ProTable<TableListItem>
+        headerTitle="查询表格"
+        actionRef={actionRef}
+        rowKey="userId"
+        search={{
+          labelWidth: 120,
+        }}
+        toolBarRender={() => [
+          <Button
+            type="primary"
+            onClick={() => {
+              setModalVisible(true);
+              setUpdateFormValues({});
             }}
-            toolBarRender={() => [
-              <Button
-                type="primary"
-                onClick={() => {
-                  handleModalVisible(true);
-                  setUpdateFormValues({});
-                }}
-              >
-                <PlusOutlined /> 新建
+          >
+            <PlusOutlined /> 新建
               </Button>,
-            ]}
-            params={params}
-            request={(params, sorter, filter) => listUser({ ...params, sorter, filter })}
-            columns={columns}
-            rowSelection={{
-              onChange: (_, selectedRows) => setSelectedRows(selectedRows),
-            }}
-          />
-          {selectedRowsState?.length > 0 && (
-            <FooterToolbar
-              extra={
-                <div>
-                  已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
+        ]}
+        request={(params, sorter, filter) => listUser({ ...params, sorter, filter })}
+        columns={columns}
+        rowSelection={{
+          onChange: (_, selectedRows) => setSelectedRows(selectedRows),
+        }}
+      />
+      {selectedRowsState?.length > 0 && (
+        <FooterToolbar
+          extra={
+            <div>
+              已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
                   项&nbsp;&nbsp;
                   {/* <span>
                     服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo, 0)}{' '}
                     万
                   </span> */}
-                </div>
-              }
-            >
-              <Button
-                onClick={async () => {
-                  await handleRemove(selectedRowsState);
-                  setSelectedRows([]);
-                  actionRef.current?.reloadAndRest?.();
-                }}
-              >
-                批量删除
-              </Button>
-              {/* <Button type="primary">批量审批</Button> */}
-            </FooterToolbar>
-          )}
-
-          <AddForm
-            title={
-              updateFormValues && Object.keys(updateFormValues).length ? '修改用户' : '添加用户'
-            }
-            visible={modalVisible}
-            onClose={() => handleModalVisible(false)}
-            onSubmit={() => {
-              handleModalVisible(false);
-              if (actionRef.current) actionRef.current.reload();
+            </div>
+          }
+        >
+          <Button
+            onClick={async () => {
+              await handleRemove(selectedRowsState);
+              setSelectedRows([]);
+              actionRef.current?.reloadAndRest?.();
             }}
-            values={updateFormValues}
-          />
+          >
+            批量删除
+              </Button>
+          {/* <Button type="primary">批量审批</Button> */}
+        </FooterToolbar>
+      )}
 
-          {/* <CreateForm onCancel={() => handleModalVisible(false)} modalVisible={createModalVisible}>
+      <AddForm
+        title={
+          updateFormValues && Object.keys(updateFormValues).length ? '修改用户' : '添加用户'
+        }
+        visible={modalVisible}
+        onVisibleChange={setModalVisible}
+        data={updateFormValues}
+        done={() => {
+          if (actionRef.current) actionRef.current.reload();
+        }}
+      />
+
+      {/* <CreateForm onCancel={() => handleModalVisible(false)} modalVisible={createModalVisible}>
             <ProTable<TableListItem, TableListItem>
               onSubmit={async (value) => {
                 const success = await handleAdd(value);
@@ -394,8 +355,6 @@ const TableList: React.FC<{}> = () => {
               values={stepFormValues}
             />
           ) : null} */}
-        </Col>
-      </Row>
 
       <Drawer
         width={600}

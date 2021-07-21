@@ -1,14 +1,13 @@
 import './index.scss';
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useRequest } from 'umi';
-import { Form, Input, Select, Button, AutoComplete, TreeSelect, Radio, Modal, message } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
-import { listMenu } from '../../Menu/service';
-import { listType, addType, updateType } from '../service';
-import { handleTree } from '@/utils';
-import ZxModal from '@/components/Modal/index';
+import React, { useRef, useEffect } from 'react';
+import type { FormInstance } from 'antd';
+import { Form, Input, Radio, message } from 'antd';
+import { addType, updateType } from '../service';
 
-import { TableListItem } from '../data.d';
+import type { TableListItem } from '../data.d';
+import type { ZxModalFormProps } from '@/components/Modal/ZxModalForm';
+import ZxModalForm from '@/components/Modal/ZxModalForm';
+
 
 const { TextArea } = Input;
 
@@ -37,151 +36,95 @@ const formItemLayout = {
     sm: { span: 20 },
   },
 };
-const tailFormItemLayout = {
-  wrapperCol: {
-    xs: {
-      span: 24,
-      offset: 0,
-    },
-    sm: {
-      span: 14,
-      offset: 10,
-    },
-  },
-};
 
-const RegistrationForm = (props: { visible: any; onClose: any; onSubmit: any; values?: {} | undefined; }) => {
-  const { visible, onClose, onSubmit, values = {} } = props;
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState<boolean>(false);
-  // 添加字典
-  const { loading: addLoading, run } = useRequest(addType, {
-    manual: true,
-    onSuccess(res) {
-      ref.current.done(false);
-      message.success('字典添加成功！');
-      onSubmit();
-    },
-    onError(err) {
-      ref.current.done(false);
-    },
-  });
-  // 修改字典
-  const { loading: updateLoading, run: updateRun } = useRequest(updateType, {
-    manual: true,
-    onSuccess(res) {
-      ref.current.done(false);
-      message.success('字典修改成功！');
-      onSubmit();
-    },
-    onError(err) {
-      ref.current.done(false);
-    },
-  });
 
+interface DictModalFormProps extends ZxModalFormProps {
+  data?: any;
+}
+
+const DictModalForm: React.FC<DictModalFormProps> = (props) => {
+  const { visible, data, done } = props;
+  
+  const formRef = useRef<FormInstance>();
   useEffect(() => {
-    if (visible && !addLoading && !updateLoading) {
-      form.setFieldsValue({
-        dictName: values.dictName || '',
-        dictType: values.dictType || '',
-        status: values.status || '0',
-        remark: values.remark || '',
-      });
+    if(visible) {
+      formRef?.current?.setFieldsValue({
+        dictName: data?.dictName || undefined,
+        dictType: data?.dictType || undefined,
+        status: data?.status || '0',
+        remark: data?.remark || undefined
+      })
     }
-  }, [visible]);
-
-  const ref = useRef(null);
+  },[visible])
 
   return (
-    <ZxModal
-      ref={ref}
-      title="添加字典类型"
-      visible={visible}
-      onCancel={() => onClose()}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((res) => {
-            form.submit()
-          })
-          // .catch((err) => ref.current.done(false));
+    <ZxModalForm
+      formRef={formRef}
+      {...formItemLayout}
+      initialValues={{
+        status: '0'
       }}
-      confirmLoading={loading}
+      onFinish={(values) => {
+        console.log(values)
+        if (data.dictId) {
+          return updateType({ ...values, dictId: data?.dictId }).then(() => {
+            message.success('字典修改成功！');
+            done?.()
+            return true;
+          }).catch(() => {
+            message.error('字典修改失败！');
+            return false;
+          })
+        } 
+        return addType(values).then(() => {
+          message.success('字典添加成功！');
+          done?.()
+          return true;
+        }).catch(() => {
+          message.error('字典添加失败！');
+          return false;
+        })
+      }}
+      {...props}
     >
-      <Form
-        {...formItemLayout}
-        form={form}
-        name="register"
-        onFinish={(formValues) => {
-          if (values.dictId) {
-
-            // updateRun({ ...formValues, dictId: values.dictId });
-            updateType({ ...formValues, dictId: values.dictId }).then(res => {
-              setLoading(false)
-              message.success('字典修改成功！');
-              onSubmit();
-              
-            }).catch(err => {
-              setLoading(false)
-              message.error('字典修改失败！');
-            })
-          } else {
-            addType({
-              ...formValues
-            }).then(res => {
-              setLoading(false)
-              message.success('字典添加成功！');
-              onSubmit();
-              
-            }).catch(err => {
-              setLoading(false)
-              message.error('字典添加失败！');
-            })
-            // run(formValues);
-          }
-        }}
-        scrollToFirstError
-        preserve={false}
+      <Form.Item
+        name="dictName"
+        label="字典名称"
+        rules={[
+          {
+            required: true,
+            message: '请填写字典名称',
+          },
+        ]}
       >
-        <Form.Item
-          name="dictName"
-          label="字典名称"
-          rules={[
-            {
-              required: true,
-              message: '请填写字典名称',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
+        <Input />
+      </Form.Item>
 
-        <Form.Item
-          name="dictType"
-          label="字典类型"
-          rules={[
-            {
-              required: true,
-              message: '请填写字典类型',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
+      <Form.Item
+        name="dictType"
+        label="字典类型"
+        rules={[
+          {
+            required: true,
+            message: '请填写字典类型',
+          },
+        ]}
+      >
+        <Input />
+      </Form.Item>
 
-        <Form.Item name="status" label="状态">
-          <Radio.Group>
-            <Radio value="0">正常</Radio>
-            <Radio value="1">停用</Radio>
-          </Radio.Group>
-        </Form.Item>
+      <Form.Item name="status" label="状态">
+        <Radio.Group>
+          <Radio value="0">正常</Radio>
+          <Radio value="1">停用</Radio>
+        </Radio.Group>
+      </Form.Item>
 
-        <Form.Item name="remark" label="备注">
-          <TextArea rows={4} />
-        </Form.Item>
-      </Form>
-    </ZxModal>
-  );
-};
+      <Form.Item name="remark" label="备注">
+        <TextArea rows={4} />
+      </Form.Item>
+    </ZxModalForm>
+  )
+}
 
-export default (props) => <RegistrationForm {...props} />;
+export default DictModalForm;

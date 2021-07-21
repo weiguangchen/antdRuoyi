@@ -1,8 +1,10 @@
 import { Modal, notification } from "antd";
-import { getDvaApp, RequestConfig } from "umi";
-import { Context, RequestOptionsInit, ResponseError } from "umi-request";
+import type { RequestConfig} from "umi";
+import { getDvaApp, UseRequestProvider } from "umi";
+import type { Context, RequestOptionsInit, ResponseError } from "umi-request";
 import { getToken, removeToken } from "./utils/auth";
 import { getInfo, getRouters } from './services/user';
+import React from "react";
 
 let flag = false;
 export const request: RequestConfig = {
@@ -19,25 +21,25 @@ export const request: RequestConfig = {
                     options: {
                         ...options,
                         headers: {
-                            Authorization: 'Bearer ' + getToken(),
+                            Authorization: `Bearer ${  getToken()}`,
                         },
                     },
                 };
-            } else {
+            } 
                 return {
                     url,
                     options,
                     headers: {
                     }
                 };
-            }
+            
         }
     ],
     responseInterceptors: [
         async (response: Response, options: RequestOptionsInit) => {
             const data = await response.clone().json()
             if (flag) return;
-            const code = data.code;
+            const {code} = data;
             if (code) {
                 if (code === 401) {
                     flag = true;
@@ -89,7 +91,6 @@ export const request: RequestConfig = {
 export async function getInitialState() {
     if (getToken()) {
         try {
-            // window.oldRender();
             const { permissions, roles, user } = await getInfo();
             return {
                 permissions,
@@ -98,7 +99,7 @@ export async function getInitialState() {
             }
         } catch (err) {
             removeToken();
-            location.reload();
+            window.location.reload();
             return undefined;
         }
     } else {
@@ -173,16 +174,16 @@ export function patchRoutes({ routes }: { routes: any[] }) {
     // debugger
     // console.log('routes')
     // console.log(routes)
-    let root = getRootRoute(routes, 'basic')
+    const root = getRootRoute(routes, 'basic')
 
-    let arr = getComponent(extraRoutes);
-    let arr2 = getComponent(constantRoutes)
+    const arr = getComponent(extraRoutes);
+    const arr2 = getComponent(constantRoutes)
 
     // console.log(arr)
     // console.log(constantRoutes)
     // console.log(arr2)
 
-    const length = root.routes.length;
+    const {length} = root.routes;
     const preRouters = root.routes.slice(0, length - 1)
     const lastRouter = root.routes.slice(length - 1, length)
 
@@ -192,19 +193,15 @@ export function patchRoutes({ routes }: { routes: any[] }) {
         ...arr,
         ...lastRouter
     ]
-
     // console.log(routes)
     // console.log('--end--')
 }
-const whiteList = ['/user/login', '/user/register', '/user/forget']
 // 渲染页面
 export function render(oldRender: any) {
     // oldRender()
     // 设置默认oldRender();
     window.oldRender = async () => {
         // console.log('触发render');
-        const { pathname } = window.location;
-
         if (getToken()) {
             try {
                 const { data } = await getRouters();
@@ -214,7 +211,7 @@ export function render(oldRender: any) {
                 oldRender();
             } catch (err) {
                 removeToken();
-                location.reload();
+                window.location.reload();
                 oldRender();
             }
         } else {
@@ -225,3 +222,24 @@ export function render(oldRender: any) {
         window.oldRender();
     }
 }
+
+
+/** 修改交给 react-dom 渲染时的根组件 */
+export function rootContainer(container: any) {
+    const Provider = () => (
+      <UseRequestProvider
+        value={{
+          initialData: [],
+          formatResult: (res) => {
+            // console.log('root formatResult');
+            // console.log(res);
+            return res?.data ?? [];
+          },
+        }}
+      >
+        {container}
+      </UseRequestProvider>
+    );
+    return React.createElement(Provider, null, container);
+  }
+  

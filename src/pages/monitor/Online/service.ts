@@ -1,5 +1,5 @@
-import { request } from 'umi'
-import type { TableListParams } from './data.d';
+import request from '@/utils/request';
+import { TableListParams } from './data.d';
 
 export async function queryRule(params?: TableListParams) {
   return request('/api/rule', {
@@ -37,32 +37,17 @@ export async function updateRule(params: TableListParams) {
   });
 }
 
-export async function listData(params: TableListParams) {
-  return request('/system/dict/data/list', {
+// 查询在线用户列表
+export async function listOnline(params: TableListParams) {
+  return request('/monitor/online/list', {
     method: 'GET',
     params,
   });
 }
 
-// 新增字典数据
-export function addData(data: TableListParams) {
-  return request('/system/dict/data', {
-    method: 'POST',
-    data,
-  });
-}
-
-// 修改字典数据
-export function updateData(data: TableListParams) {
-  return request('/system/dict/data', {
-    method: 'PUT',
-    data,
-  });
-}
-
-// 删除字典数据
-export async function delData(dictCode: number | number[]) {
-  return request(`/system/dict/data/${  dictCode}`, {
+// 强退用户
+export async function forceLogout(tokenId: string) {
+  return request('/monitor/online/' + tokenId, {
     method: 'DELETE',
   });
 }

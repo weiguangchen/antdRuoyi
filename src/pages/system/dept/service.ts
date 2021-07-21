@@ -1,41 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
-
-export async function queryRule(params?: TableListParams) {
-  return request('/api/rule', {
-    params,
-  });
-}
-
-export async function removeRule(params: { key: number[] }) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'delete',
-    },
-  });
-}
-
-export async function addRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'post',
-    },
-  });
-}
-
-export async function updateRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'update',
-    },
-  });
-}
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 // 查询部门列表
 export async function listDept(params: TableListParams) {
@@ -62,10 +26,9 @@ export async function updateDept(data: TableListParams) {
 }
 
 // 删除部门
-export async function delDept(data: any) {
-  return request('/system/dept/remove', {
+export async function delDept(deptId: number | number[]) {
+  return request(`/system/dept/${deptId}`, {
     method: 'DELETE',
-    data
   });
 }
 
@@ -78,7 +41,7 @@ export async function treeselect() {
 
 // 根据角色ID查询部门树结构
 export function roleDeptTreeselect(roleId: number) {
-  return request('/system/dept/roleDeptTreeselect/' + roleId, {
+  return request(`/system/dept/roleDeptTreeselect/${  roleId}`, {
     method: 'GET',
   });
 }

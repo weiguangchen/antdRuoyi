@@ -44,7 +44,7 @@ const Login: React.FC<LoginProps> = (props) => {
   const { userLogin, submitting } = props;
   const { status, errorText, type: loginType } = userLogin;
   const { initialState, loading } = useModel('@@initialState');
-  const { login }  = useModel('useLoginModel', model => ({ login: model.login}))
+  const { login, logining }  = useModel('useLoginModel', model => ({ login: model.login, logining: model.loading}))
   const [type, setType] = useState<string>('account');
   const intl = useIntl();
 
@@ -53,10 +53,7 @@ const Login: React.FC<LoginProps> = (props) => {
     formatResult: (res) => res,
   });
   const handleSubmit = (values: LoginParamsType) => {
-    login(values).then(() => {
-      // window.oldRender();
-      // window.location.reload();
-    }).catch(() => refreshCaptchaImage())
+    login(values).catch(() => refreshCaptchaImage())
   };
   
   if (initialState) {
@@ -84,7 +81,7 @@ const Login: React.FC<LoginProps> = (props) => {
         submitter={{
           render: (_, dom) => dom.pop(),
           submitButtonProps: {
-            loading: submitting,
+            loading: logining,
             size: 'large',
             style: {
               width: '100%',

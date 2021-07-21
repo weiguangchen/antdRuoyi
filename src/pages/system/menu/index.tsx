@@ -2,11 +2,13 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Button, Divider, message, Input, Drawer, Modal } from 'antd';
 import React, { useState, useRef } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
+import type { ProColumns, ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
 import CreateForm from './components/CreateForm';
-import UpdateForm, { FormValueType } from './components/UpdateForm';
-import { TableListItem } from './data.d';
+import type { FormValueType } from './components/UpdateForm';
+import UpdateForm from './components/UpdateForm';
+import type { TableListItem } from './data.d';
 import { listMenu, updateRule, addRule, removeRule, delMenu } from './service';
 import { handleTree } from '@/utils';
 import AddForm from './components/Form';
@@ -74,8 +76,7 @@ const handleRemove = async (selectedRows: TableListItem[]) => {
 };
 
 const TableList: React.FC<{}> = (props) => {
-  const [modalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
@@ -129,7 +130,7 @@ const TableList: React.FC<{}> = (props) => {
         <>
           <a
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               setUpdateFormValues(record);
             }}
           >
@@ -138,7 +139,7 @@ const TableList: React.FC<{}> = (props) => {
           <Divider type="vertical" />
           <a
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               const data = {
                 parentId: record.menuId,
               };
@@ -152,21 +153,17 @@ const TableList: React.FC<{}> = (props) => {
             onClick={() => {
               Modal.confirm({
                 title: '提示',
-                content: '是否确认删除' + record.menuName,
+                content: `是否确认删除${record.menuName}`,
                 okText: '确认',
                 onOk() {
-                  return new Promise((resolve, reject) => {
-                    delMenu(record.menuId)
-                      .then((res) => {
-                        setSelectedRows([]);
-                        actionRef.current?.reloadAndRest?.();
-                        resolve();
-                      })
-                      .catch((err) => {
-                        message.error(err.msg);
-                        reject();
-                      });
-                  });
+                  return delMenu(record.menuId)
+                    .then(() => {
+                      setSelectedRows([]);
+                      actionRef.current?.reloadAndRest?.();
+                    })
+                    .catch((err) => {
+                      message.error(err.msg);
+                    });
                 },
               });
             }}
@@ -191,7 +188,7 @@ const TableList: React.FC<{}> = (props) => {
           <Button
             type="primary"
             onClick={() => {
-              handleModalVisible(true);
+              setModalVisible(true);
               setUpdateFormValues({});
             }}
             key='add'
@@ -203,12 +200,12 @@ const TableList: React.FC<{}> = (props) => {
           return new Promise((resolve, reject) => {
             listMenu({ sorter, filter })
               .then((response) => {
-                let map = {};
+                const map = {};
                 response.data.map(m => {
                   map[m.menuId] = m.menuName
                 })
                 setMenuMap(map)
-                let menuOptions = handleTree(response.data, 'menuId');
+                const menuOptions = handleTree(response.data, 'menuId');
                 resolve({
                   data: menuOptions,
                   success: true,
@@ -262,12 +259,11 @@ const TableList: React.FC<{}> = (props) => {
       <AddForm
         title={updateFormValues && Object.keys(updateFormValues).length ? '修改菜单' : '添加菜单'}
         visible={modalVisible}
-        onClose={() => handleModalVisible(false)}
-        onSubmit={() => {
-          handleModalVisible(false);
+        onVisibleChange={setModalVisible}
+        data={updateFormValues}
+        done={() => {
           if (actionRef.current) actionRef.current.reload();
         }}
-        values={updateFormValues}
       />
     </PageContainer>
   );

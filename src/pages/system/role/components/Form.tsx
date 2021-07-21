@@ -1,33 +1,24 @@
 import './index.scss';
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { useRequest } from 'umi';
+import type {
+  FormInstance
+} from 'antd';
 import {
   Form,
   Input,
-  Tooltip,
-  Cascader,
-  Select,
-  Row,
-  Col,
-  Button,
-  AutoComplete,
-  TreeSelect,
   Radio,
   InputNumber,
-  Tree,
   message,
   Spin,
-  Checkbox,
 } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
-import { listMenu, roleMenuTreeselect } from '../../Menu/service';
+import { listMenu } from '../../Menu/service';
 import { addRole, getDateByRoleId, updateRole } from '../service';
 import { handleTree } from '@/utils';
-import ZxModal from '@/components/Modal';
 import MyTree from '@/components/Tree';
-import { getDicts } from '@/pages/System/Dict/service';
+import type { ZxModalFormProps } from '@/components/Modal/ZxModalForm';
+import ZxModalForm from '@/components/Modal/ZxModalForm';
 
-const { Option } = Select;
 const { TextArea } = Input;
 
 const formItemLayout = {
@@ -41,53 +32,14 @@ const formItemLayout = {
   },
 };
 
-const MenuTree: React.FC = ({ value = [], onChange }) => {
-  const { data: resTreeData, loading: treeLoading } = useRequest(listMenu);
-  const treeData = useMemo(() => {
-    const tempTreeData = resTreeData
-      ? resTreeData.map((m: any) => {
-        m.title = m.menuName;
-        m.key = `${m.menuId}`;
-        return m;
-      })
-      : [];
-    return handleTree(tempTreeData, 'menuId');
-  }, [resTreeData]);
 
-  return (
-    <Spin spinning={treeLoading}>
-      <Tree
-        height={300}
-        checkable
-        treeData={treeData}
-        checkedKeys={value}
-        checkStrictly={true}
-        onCheck={(checkedKeys, { halfCheckedKeys }) => {
-          if (onChange) onChange(checkedKeys.checked);
-        }}
-      />
-    </Spin>
-  );
-};
-const keys = ['isOffice', 'isQualification', 'isElectronics', 'isAdvertising'];
-const typeOptions = [{
-  label:'办公用品',
-  value:'1'
-},{
-  label:'资质物料',
-  value:'2'
-},{
-  label:'电子资料',
-  value:'3'
-},{
-  label:'宣传物料',
-  value:'4'
-}]
+interface RoleModalFormProps extends ZxModalFormProps {
+  data: any
+}
 
-const RegistrationForm = (props) => {
-  const { visible, onClose, onSubmit, values = {}, title } = props;
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false)
+const RoleModalForm: React.FC<RoleModalFormProps> = (props) => {
+  const { visible, data, done } = props;
+  const formRef = useRef<FormInstance>();
 
   // 菜单树
   const { data: resTreeData, loading: treeLoading, refresh } = useRequest(listMenu);
@@ -109,221 +61,146 @@ const RegistrationForm = (props) => {
     })
     return map;
   }, [resTreeData])
-  // 查询角色权限
-  const { run: roleMenuRun } = useRequest(() => roleMenuTreeselect(values.roleId), {
-    manual: true,
-    onSuccess(res) {
-      form.setFieldsValue({
-        menuIds: res.checkedKeys.map((m) => `${m}`),
-      });
-    },
-    formatResult: (res) => res,
-  });
-
-
-  // 回显物料权限
-  const { run: getTypeData, data: typeData } = useRequest(() => getDateByRoleId(values?.roleId), {
-    manual: true,
-    onSuccess(data) {
-      let type: any[] = [];
-      keys.map((m, i) => {
-        if (data[m] == 1) {
-          type.push(`${i + 1}`)
-        }
-      })
-      form.setFieldsValue({
-        type
-      });
-    }
-  })
-
 
   useEffect(() => {
-    if (values.roleId && visible) {
-      roleMenuRun();
-    } else {
-      form.setFieldsValue({
-        menuIds: [],
+    if (visible) {
+      formRef?.current?.setFieldsValue({
+        roleName: data?.roleName ?? undefined,
+        roleKey: data?.roleKey ?? undefined,
+        roleSort: data?.roleSort ?? 1,
+        status: data?.status ?? '0',
+        menuIds: data?.menuIds ?? [],
+        remark: data?.remark ?? undefined,
       });
-    }
-
-    if (visible && !loading) {
-      console.log(values)
-      form.setFieldsValue({
-        roleName: values.roleName || '',
-        roleKey: values.roleKey || '',
-        roleSort: values.roleSort || 0,
-        status: values.status || '0',
-        remark: values.remark || '',
-      });
-
-      getTypeData()
     }
   }, [visible]);
 
-
   return (
-    <ZxModal
-      title={title}
-      visible={visible}
-      onCancel={() => onClose()}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((res) => {
-            setLoading(true)
-            form.submit()
-          })
+    <ZxModalForm
+      formRef={formRef}
+      {...formItemLayout}
+      modalProps={{
+        onCancel: () => console.log('run'),
       }}
-      confirmLoading={loading}
+      onFinish={async (values) => {
+        const { menuIds } = values;
+        const menuList = menuIds.map(m => {
+          const obj: any = {};
+          obj.menuName = treedataMap[m];
+          obj.menuId = m;
+          return obj
+        })
+
+        if (data.roleId) {
+          return updateRole({
+            roleId: data.roleId,
+            menuList,
+            ...values,
+          }).then(() => {
+            message.success('岗位修改成功！');
+            done?.()
+            return true
+          }).catch(() => {
+            message.error('岗位修改失败！');
+            return false;
+          })
+        } 
+          return addRole({
+            menuList,
+            ...values,
+          }).then(() => {
+            message.success('岗位添加成功！');
+            done?.();
+            return true;
+          }).catch(() => {
+            message.error('岗位添加失败！');
+            return false;
+          })
+        
+      }}
+      {...props}
     >
-      <Form
-        {...formItemLayout}
-        form={form}
-        name="register"
-        onFinish={(formValues) => {
-
-          const { menuIds, type } = formValues;
-          const menuList = menuIds.map(m => {
-            const obj: any = {};
-            obj.menuName = treedataMap[m];
-            obj.menuId = m;
-            return obj
-          })
-          // 删除非必要参数，防止污染日志
-          delete formValues.menuIds;
-
-          // 处理物料类型
-          const types = {};
-          keys.map((m,i) => {
-              const value = type.includes(`${i+1}`);
-              types[m] = value ? '1' : '0';
-          })
-          console.log(types)
-          // 删除非必要参数，防止污染日志
-          delete formValues.type;
-
-          if (values.roleId) {
-            updateRole({
-              roleId: values.roleId,
-              menuList,
-              mmdId: typeData.mmdId,
-              ...formValues,
-              ...types,
-            }).then(res => {
-              message.success('岗位修改成功！');
-              onSubmit();
-              setLoading(false)
-            }).catch(err => {
-              message.error('岗位修改失败！');
-              setLoading(false)
-            })
-          } else {
-            addRole({
-              menuList,
-              mmdId: typeData.mmdId,
-              ...formValues,
-              ...types,
-            }).then(res => {
-              message.success('岗位添加成功！');
-              onSubmit();
-              setLoading(false)
-            }).catch(err => {
-              message.error('岗位添加失败！');
-              setLoading(false)
-            })
-          }
-        }}
-        scrollToFirstError
-        preserve={false}
-      >
-        <Form.Item
-          name="roleName"
-          label="角色名称"
-          rules={[
-            {
-              required: true,
-              message: '请填写角色名称',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-
-        <Form.Item
-          name="roleKey"
-          label="权限字符"
-          rules={[
-            {
-              required: true,
-              message: '请填写权限字符',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-
-        <Form.Item
-          name="roleSort"
-          label="角色顺序"
-          rules={[
-            {
-              required: true,
-              message: '请填写角色顺序',
-            },
-          ]}
-        >
-          <InputNumber min={0} />
-        </Form.Item>
-
-        <Form.Item
-          name="status"
-          label="状态"
-          rules={[
-            {
-              required: true,
-              message: '请选择状态',
-            },
-          ]}
-        >
-          <Radio.Group>
-            <Radio value="0">正常</Radio>
-            <Radio value="1">停用</Radio>
-          </Radio.Group>
-        </Form.Item>
-
-        <Form.Item
-          name="menuIds"
-          label="菜单权限"
-          rules={[
-            {
-              required: true,
-              message: '请选择菜单权限',
-            },
-          ]}
-        >
-          {/* <MenuTree /> */}
+      <Form.Item
+        name="roleName"
+        label="角色名称"
+        rules={[
           {
-            treeLoading ? <Spin /> : (
-              <MyTree
-                height={300}
-                checkable
-                treeData={treeData}
-              />
-            )
-          }
-        </Form.Item>
+            required: true,
+            message: '请填写角色名称',
+          },
+        ]}
+      >
+        <Input />
+      </Form.Item>
 
-        <Form.Item name="type" label="物料类型">
-          <Checkbox.Group options={typeOptions} />
-        </Form.Item>
+      <Form.Item
+        name="roleKey"
+        label="权限字符"
+        rules={[
+          {
+            required: true,
+            message: '请填写权限字符',
+          },
+        ]}
+      >
+        <Input />
+      </Form.Item>
 
-        <Form.Item name="remark" label="备注">
-          <TextArea rows={4} />
-        </Form.Item>
-      </Form>
-    </ZxModal>
-  );
-};
+      <Form.Item
+        name="roleSort"
+        label="角色顺序"
+        rules={[
+          {
+            required: true,
+            message: '请填写角色顺序',
+          },
+        ]}
+      >
+        <InputNumber min={1} />
+      </Form.Item>
 
-export default (props) => <RegistrationForm {...props} />;
+      <Form.Item
+        name="status"
+        label="状态"
+        rules={[
+          {
+            required: true,
+            message: '请选择状态',
+          },
+        ]}
+      >
+        <Radio.Group>
+          <Radio value="0">正常</Radio>
+          <Radio value="1">停用</Radio>
+        </Radio.Group>
+      </Form.Item>
+
+      <Form.Item
+        name="menuIds"
+        label="菜单权限"
+        rules={[
+          {
+            required: true,
+            message: '请选择菜单权限',
+          },
+        ]}
+      >
+        {
+          treeLoading ? <Spin /> : (
+            <MyTree
+              height={300}
+              checkable
+              treeData={treeData}
+            />
+          )
+        }
+      </Form.Item>
+
+      <Form.Item name="remark" label="备注">
+        <TextArea rows={4} />
+      </Form.Item>
+    </ZxModalForm>
+  )
+}
+
+export default RoleModalForm;

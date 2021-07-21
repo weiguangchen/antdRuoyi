@@ -1,5 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 export async function queryRule(params?: TableListParams) {
   return request('/api/rule', {
@@ -46,7 +46,7 @@ export async function listType(params: TableListParams) {
 
 // 查询字典类型详细
 export function getType(dictId: number) {
-  return request('/system/dict/type/' + dictId, {
+  return request(`/system/dict/type/${  dictId}`, {
     method: 'GET',
   });
 }
@@ -67,13 +67,13 @@ export async function updateType(data: TableListParams) {
 }
 // 删除字典类型
 export async function delType(dictId: number | number[]) {
-  return request('/system/dict/type/' + dictId, {
+  return request(`/system/dict/type/${  dictId}`, {
     method: 'DELETE',
   });
 }
 // 根据字典类型查询字典数据信息
 export async function getDicts(dictType: string) {
-  return request('/system/dict/data/type/' + dictType, {
+  return request(`/system/dict/data/type/${  dictType}`, {
     method: 'GET',
   });
 }

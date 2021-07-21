@@ -1,5 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 export async function queryRule(params?: TableListParams) {
   return request('/api/rule', {
@@ -47,7 +47,7 @@ export async function listLoginInfor(params: TableListParams) {
 
 // 删除登录日志
 export async function delLogininfor(infoId: number | number[]) {
-  return request('/monitor/logininfor/' + infoId, {
+  return request(`/monitor/logininfor/${  infoId}`, {
     method: 'DELETE',
   });
 }

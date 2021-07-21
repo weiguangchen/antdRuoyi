@@ -1,6 +1,9 @@
 import './index.scss';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRequest } from 'umi';
+import type {
+  FormInstance
+} from 'antd';
 import {
   Form,
   Input,
@@ -11,14 +14,16 @@ import {
   Radio,
   Modal,
   message,
-  InputNumber,
+  InputNumber
 } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { addPost, updatePost } from '../service';
 import { handleTree } from '@/utils';
 import ZxModal from '@/components/Modal/index';
 
-import { TableListItem } from '../data.d';
+import type { TableListItem } from '../data.d';
+import type { ZxModalFormProps } from '@/components/Modal/ZxModalForm';
+import ZxModalForm from '@/components/Modal/ZxModalForm';
 
 const { TextArea } = Input;
 
@@ -47,131 +52,109 @@ const formItemLayout = {
     sm: { span: 20 },
   },
 };
-const tailFormItemLayout = {
-  wrapperCol: {
-    xs: {
-      span: 24,
-      offset: 0,
-    },
-    sm: {
-      span: 14,
-      offset: 10,
-    },
-  },
-};
 
-const PostForm = (props) => {
-  const { visible, onClose, onSubmit, values = {} } = props;
-  const [loading,setLoading] = useState<boolean>(false)
-  const [form] = Form.useForm();
+interface PostModalFormProps extends ZxModalFormProps {
+  data: any
+}
+
+const PostModalForm: React.FC<PostModalFormProps> = (props) => {
+  const { visible, data, done } = props;
+  const formRef = useRef<FormInstance>();
+
 
   useEffect(() => {
-    if (visible && !loading ) {
-      form.setFieldsValue({
-        postName: values.postName || '',
-        postCode: values.postCode || '',
-        postSort: values.postSort || 0,
-        status: values.status || '0',
-        remark: values.remark || '',
+    if (visible) {
+      formRef?.current?.setFieldsValue({
+        postName: data?.postName ?? undefined,
+        postCode: data?.postCode ?? undefined,
+        postSort: data?.postSort ?? 1,
+        status: data?.status ?? '0',
+        remark: data?.remark ?? undefined,
       });
     }
   }, [visible]);
 
   return (
-    <ZxModal
-      title={props.title}
-      visible={visible}
-      onCancel={() => onClose()}
-      onOk={() => {
-        form
-          .validateFields()
-          .then(() => {
-            setLoading(true)
-            form.submit()
-          })
+    <ZxModalForm
+      formRef={formRef}
+      {...formItemLayout}
+      modalProps={{
+        onCancel: () => console.log('run'),
       }}
-      confirmLoading={loading}
+      onFinish={async (values) => {
+        if (data.postId) {
+          return updatePost({ ...values, postId: data?.postId }).then(() => {
+            message.success('职位修改成功！');
+            done?.()
+            return true;
+          }).catch(() => {
+            message.error('职位修改失败！');
+            return false;
+          })
+        }
+        return addPost(values).then(() => {
+          message.success('职位添加成功！');
+          done?.()
+          return true;
+        }).catch(() => {
+          message.error('职位添加失败！');
+          return false;
+        })
+
+      }}
+      {...props}
     >
-      <Form
-        {...formItemLayout}
-        form={form}
-        name="register"
-        onFinish={(formValues) => {
-          if (values.postId) {
-            updatePost({ ...formValues, postId: values.postId }).then(res => {
-              message.success('职位修改成功！');
-              onSubmit();
-              setLoading(false)
-            }).catch(err => {
-              message.error('职位修改失败！');
-              setLoading(false)
-            })
-          } else {
-            addPost(formValues).then(res => {
-              message.success('职位添加成功！');
-              onSubmit();
-              setLoading(false)
-            }).catch(err => {
-              message.error('职位添加失败！');
-              setLoading(false)
-            })
-          }
-        }}
-        scrollToFirstError
-        preserve={false}
+      <Form.Item
+        name="postName"
+        label="职位名称"
+        rules={[
+          {
+            required: true,
+            message: '请填写职位名称',
+          },
+        ]}
       >
-        <Form.Item
-          name="postName"
-          label="职位名称"
-          rules={[
-            {
-              required: true,
-              message: '请填写职位名称',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
+        <Input />
+      </Form.Item>
 
-        {/* <Form.Item
-          name="postCode"
-          label="职位编码"
-          rules={[
-            {
-              required: true,
-              message: '请填写职位编码',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item> */}
+      <Form.Item
+        name="postCode"
+        label="职位编码"
+        rules={[
+          {
+            required: true,
+            message: '请填写职位编码',
+          },
+        ]}
+      >
+        <Input />
+      </Form.Item>
 
-        <Form.Item
-          name="postSort"
-          label="职位排序"
-          rules={[
-            {
-              required: true,
-              message: '请填写职位排序',
-            },
-          ]}
-        >
-          <InputNumber min={0} />
-        </Form.Item>
+      <Form.Item
+        name="postSort"
+        label="职位排序"
+        rules={[
+          {
+            required: true,
+            message: '请填写职位排序',
+          },
+        ]}
+      >
+        <InputNumber min={1} />
+      </Form.Item>
 
-        {/* <Form.Item name="status" label="职位状态">
-          <Radio.Group>
-            <Radio value="0">正常</Radio>
-            <Radio value="1">停用</Radio>
-          </Radio.Group>
-        </Form.Item> */}
+      <Form.Item name="status" label="职位状态">
+        <Radio.Group>
+          <Radio value="0">正常</Radio>
+          <Radio value="1">停用</Radio>
+        </Radio.Group>
+      </Form.Item>
 
-        <Form.Item name="remark" label="备注">
-          <TextArea rows={4} />
-        </Form.Item>
-      </Form>
-    </ZxModal>
-  );
-};
+      <Form.Item name="remark" label="备注">
+        <TextArea rows={4} />
+      </Form.Item>
+    </ZxModalForm>
+  )
+}
 
-export default PostForm;
+export default PostModalForm;

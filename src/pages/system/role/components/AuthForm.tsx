@@ -1,6 +1,9 @@
 import './index.scss';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRequest } from 'umi';
+import type {
+  FormInstance
+} from 'antd';
 import {
   Form,
   Input,
@@ -16,7 +19,7 @@ import {
   InputNumber,
   Tree,
   message,
-  Spin,
+  Spin
 } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { listMenu, roleMenuTreeselect } from '../../Menu/service';
@@ -24,6 +27,9 @@ import { addRole, updateRole, dataScope } from '../service';
 import { treeselect as deptTreeselect, roleDeptTreeselect } from '@/pages/System/Dept/service';
 import { handleTree, formatTreeData } from '@/utils';
 import ZxModal from '@/components/Modal';
+import type { ZxModalFormProps } from '@/components/Modal/ZxModalForm';
+import ZxModalForm from '@/components/Modal/ZxModalForm';
+import MyTree from '@/components/Tree';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -94,105 +100,194 @@ const dataScopeOptions = [
   },
 ];
 
-const RegistrationForm = (props) => {
-  const { visible, onClose, onSubmit, values = {}, title } = props;
-  const [form] = Form.useForm();
-  const ref = useRef(null);
+// const RegistrationForm = (props) => {
+//   const { visible, onClose, onSubmit, values = {}, title } = props;
+//   const [form] = Form.useForm();
+//   const ref = useRef(null);
 
-  // 查询角色数据权限
-  const { run: roleDeptRun } = useRequest(() => roleDeptTreeselect(values.roleId), {
-    manual: true,
-    onSuccess(res) {
-      console.log('deptIds');
-      console.log(res.checkedKeys.map((m) => `${m}`));
-      form.setFieldsValue({
-        deptIds: res.checkedKeys,
-      });
-    },
-    formatResult: (res) => res,
-  });
-  // 保存数据权限
-  const { loading: updateLoading, run: updateRun } = useRequest(dataScope, {
-    manual: true,
-    onSuccess(res) {
-      ref.current.done(false);
-      message.success('角色权限保存成功！');
-      onSubmit();
-    },
-    onError(err) {
-      ref.current.done(false);
-    },
-  });
+//   // 查询角色数据权限
+//   const { run: roleDeptRun } = useRequest(() => roleDeptTreeselect(values.roleId), {
+//     manual: true,
+//     onSuccess(res) {
+//       console.log('deptIds');
+//       console.log(res.checkedKeys.map((m) => `${m}`));
+//       form.setFieldsValue({
+//         deptIds: res.checkedKeys,
+//       });
+//     },
+//     formatResult: (res) => res,
+//   });
+//   // 保存数据权限
+//   const { loading: updateLoading, run: updateRun } = useRequest(dataScope, {
+//     manual: true,
+//     onSuccess(res) {
+//       ref.current.done(false);
+//       message.success('角色权限保存成功！');
+//       onSubmit();
+//     },
+//     onError(err) {
+//       ref.current.done(false);
+//     },
+//   });
+
+//   useEffect(() => {
+//     if (values.roleId && visible) roleDeptRun();
+
+//     if (visible && !updateLoading) {
+//       form.setFieldsValue({
+//         roleName: values.roleName || '',
+//         roleKey: values.roleKey || '',
+//         dataScope: values.dataScope,
+//       });
+//     }
+//   }, [visible]);
+
+//   return (
+//     <ZxModal
+//       ref={ref}
+//       title={title}
+//       visible={visible}
+//       onCancel={() => onClose()}
+//       onSubmit={() => {
+//         form
+//           .validateFields()
+//           .then((res) => form.submit())
+//           .catch((err) => ref.current.done(false));
+//       }}
+//     >
+//       <Form
+//         {...formItemLayout}
+//         form={form}
+//         name="register"
+//         onFinish={(formValues) => {
+//           console.log(formValues);
+//           updateRun({ ...formValues, roleId: values.roleId });
+//         }}
+//         scrollToFirstError
+//         preserve={false}
+//       >
+//         <Form.Item name="roleName" label="角色名称">
+//           <Input disabled />
+//         </Form.Item>
+
+//         <Form.Item name="roleKey" label="权限字符">
+//           <Input disabled />
+//         </Form.Item>
+
+//         <Form.Item name="dataScope" label="权限范围">
+//           <Select style={{ width: 240 }}>
+//             {dataScopeOptions.map((m) => (
+//               <Option value={m.value}>{m.label}</Option>
+//             ))}
+//           </Select>
+//         </Form.Item>
+
+//         <Form.Item
+//           noStyle
+//           shouldUpdate={(prevValues, currentValues) =>
+//             prevValues.dataScope !== currentValues.dataScope
+//           }
+//         >
+//           {({ getFieldValue }) => {
+//             return getFieldValue('dataScope') === '2' ? (
+//               <Form.Item name="deptIds" label="数据权限">
+//                 <MenuTree />
+//               </Form.Item>
+//             ) : null;
+//           }}
+//         </Form.Item>
+//       </Form>
+//     </ZxModal>
+//   );
+// };
+
+// export default (props) => <RegistrationForm {...props} />;
+
+
+
+interface RoleAuthModalFormProps extends ZxModalFormProps {
+  data: any
+}
+
+const RoleAuthModalForm: React.FC<RoleAuthModalFormProps> = (props) => {
+  const { visible, data, done } = props;
+  const formRef = useRef<FormInstance>();
+
+  // 获取角色数据权限
+  // const { data: resTreeData, loading: treeLoading, run: getTree } = useRequest(deptTreeselect, {
+  //   manual: true,
+  // });
+  // const treeData = useMemo(() => formatTreeData(resTreeData), [resTreeData]);
+
 
   useEffect(() => {
-    if (values.roleId && visible) roleDeptRun();
-
-    if (visible && !updateLoading) {
-      form.setFieldsValue({
-        roleName: values.roleName || '',
-        roleKey: values.roleKey || '',
-        dataScope: values.dataScope,
+    if (visible) {
+      formRef?.current?.setFieldsValue({
+        roleName: data?.roleName ?? undefined,
+        roleKey: data?.roleKey ?? undefined,
+        dataScope: data?.dataScope ?? '1',
+        deptIds: data?.deptIds ?? []
       });
     }
   }, [visible]);
 
   return (
-    <ZxModal
-      ref={ref}
-      title={title}
-      visible={visible}
-      onCancel={() => onClose()}
-      onSubmit={() => {
-        form
-          .validateFields()
-          .then((res) => form.submit())
-          .catch((err) => ref.current.done(false));
+    <ZxModalForm
+      formRef={formRef}
+      {...formItemLayout}
+      modalProps={{
+        onCancel: () => console.log('run'),
       }}
+      onFinish={async (values) => {
+        return dataScope({ 
+          ...values,
+          deptIds: values?.dataScope == 2 ? values.deptIds : [],
+          roleId: data.roleId 
+        }).then(() => {
+          message.success('角色权限保存成功！');
+          done?.()
+          return true;
+        }).catch(() => {
+          message.error('角色权限保存失败！');
+          return false;
+        })
+      }}
+      {...props}
     >
-      <Form
-        {...formItemLayout}
-        form={form}
-        name="register"
-        onFinish={(formValues) => {
-          console.log(formValues);
-          updateRun({ ...formValues, roleId: values.roleId });
-        }}
-        scrollToFirstError
-        preserve={false}
+      <Form.Item name="roleName" label="角色名称">
+        <Input disabled />
+      </Form.Item>
+      <Form.Item name="roleKey" label="权限字符">
+        <Input disabled />
+      </Form.Item>
+      <Form.Item name="dataScope" label="权限范围">
+        <Select style={{ width: 240 }}>
+          {dataScopeOptions.map((m) => (
+            <Option value={m.value}>{m.label}</Option>
+          ))}
+        </Select>
+      </Form.Item>
+      <Form.Item
+        noStyle
+        shouldUpdate={(prevValues, currentValues) =>
+          prevValues.dataScope !== currentValues.dataScope
+        }
       >
-        <Form.Item name="roleName" label="角色名称">
-          <Input disabled />
-        </Form.Item>
+        {({ getFieldValue }) => {
+          return getFieldValue('dataScope') === '2' ? (
+            <Form.Item name="deptIds" label="数据权限">
+              <MyTree
+                height={300}
+                checkable
+                treeData={data?.treeData}
+              />
+            </Form.Item>
+          ) : null;
+        }}
+      </Form.Item>
 
-        <Form.Item name="roleKey" label="权限字符">
-          <Input disabled />
-        </Form.Item>
+    </ZxModalForm>
+  )
+}
 
-        <Form.Item name="dataScope" label="权限范围">
-          <Select style={{ width: 240 }}>
-            {dataScopeOptions.map((m) => (
-              <Option value={m.value}>{m.label}</Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          noStyle
-          shouldUpdate={(prevValues, currentValues) =>
-            prevValues.dataScope !== currentValues.dataScope
-          }
-        >
-          {({ getFieldValue }) => {
-            return getFieldValue('dataScope') === '2' ? (
-              <Form.Item name="deptIds" label="数据权限">
-                <MenuTree />
-              </Form.Item>
-            ) : null;
-          }}
-        </Form.Item>
-      </Form>
-    </ZxModal>
-  );
-};
-
-export default (props) => <RegistrationForm {...props} />;
+export default RoleAuthModalForm;

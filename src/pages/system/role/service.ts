@@ -1,41 +1,5 @@
-import request from '@/utils/request';
-import { TableListParams } from './data.d';
-
-export async function queryRule(params?: TableListParams) {
-  return request('/api/rule', {
-    params,
-  });
-}
-
-export async function removeRule(params: { key: number[] }) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'delete',
-    },
-  });
-}
-
-export async function addRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'post',
-    },
-  });
-}
-
-export async function updateRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'update',
-    },
-  });
-}
+import { request } from 'umi'
+import type { TableListParams } from './data.d';
 
 export async function listRole(params: TableListParams) {
   return request('/system/role/list', {
@@ -46,7 +10,7 @@ export async function listRole(params: TableListParams) {
 
 // 查询角色详细
 export async function getRole(roleId: number) {
-  return request('/system/role/' + roleId, {
+  return request(`/system/role/${  roleId}`, {
     method: 'GET',
   });
 }
@@ -68,10 +32,9 @@ export async function updateRole(data: TableListParams) {
 }
 
 // 删除角色
-export async function delRole(data: any) {
-  return request('/system/role/remove', {
+export async function delRole(roleId: number | number[]) {
+  return request(`/system/role/${ roleId}`, {
     method: 'DELETE',
-    data,
   });
 }
 

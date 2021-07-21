@@ -1,42 +1,6 @@
-import request from '@/utils/request';
+import { request } from 'umi'
 import { praseStrEmpty } from '@/utils';
-import { TableListParams } from './data.d';
-
-export async function queryRule(params?: TableListParams) {
-  return request('/api/rule', {
-    params,
-  });
-}
-
-export async function removeRule(params: { key: number[] }) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'delete',
-    },
-  });
-}
-
-export async function addRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'post',
-    },
-  });
-}
-
-export async function updateRule(params: TableListParams) {
-  return request('/api/rule', {
-    method: 'POST',
-    data: {
-      ...params,
-      method: 'update',
-    },
-  });
-}
+import type { TableListParams } from './data.d';
 
 // 查询用户列表
 export async function listUser(params: TableListParams) {
@@ -47,8 +11,8 @@ export async function listUser(params: TableListParams) {
 }
 
 // 查询用户详细
-export function getUser(userId: number) {
-  return request('/system/user/' + praseStrEmpty(userId), {
+export function getUser(userId: number | string) {
+  return request(`/system/user/${  praseStrEmpty(userId as string)}`, {
     method: 'GET',
   });
 }
@@ -71,7 +35,7 @@ export function updateUser(data: TableListParams) {
 
 // 删除用户
 export async function delUser(userId: number | number[]) {
-  return request('/system/user/' + userId, {
+  return request(`/system/user/${  userId}`, {
     method: 'DELETE',
   });
 }
