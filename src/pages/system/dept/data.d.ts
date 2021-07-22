@@ -1,19 +1,23 @@
-export interface TableListItem {
-  key: number;
-  disabled?: boolean;
-  href: string;
-  avatar: string;
-  name: string;
-  owner: string;
-  desc: string;
-  callNo: number;
-  status: string;
-  updatedAt: Date;
-  createdAt: Date;
-  progress: number;
-  parentId: number;
+export type TableListItem = {
+  ancestors: string;
+  children: any[]
+  createBy: string;
+  createTime: string;
+  delFlag: string;
   deptId: number;
   deptName: string;
+  email: string;
+  leader: string;
+  orderNum: string;
+  params: any;
+  parentId: number;
+  parentName: string;
+  phone: string;
+  remark: string;
+  searchValue: any;
+  status: string;
+  updateBy: string;
+  updateTime: string;
 }
 
 export interface TableListPagination {
@@ -27,13 +31,13 @@ export interface TableListData {
   pagination: Partial<TableListPagination>;
 }
 
-export interface TableListParams {
+export type TableListParams = {
   status?: string;
   name?: string;
   desc?: string;
   key?: number;
   pageSize?: number;
   currentPage?: number;
-  filter?: { [key: string]: any[] };
-  sorter?: { [key: string]: any };
+  filter?: Record<string, any[]>;
+  sorter?: Record<string, any>;
 }

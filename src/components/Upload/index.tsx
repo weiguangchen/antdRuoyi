@@ -23,23 +23,20 @@ function getBase64(file) {
 
     reader.onerror = (error) => reject(error);
   });
-}
+} // 扩展名
 
-// 扩展名
 const extensionsMap = {
-  'txt': "text/plain",
-  'pptx':
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  'ppt': "application/vnd.ms-powerpoint",
-  'docx':
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  'doc': "application/msword",
-  'xls': "application/vnd.ms-excel",
-  'xlsx': "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  'pdf': "application/pdf",
-  'gif': "image/gif",
-  'jpg': "image/jpeg",
-  'png': "image/png"
+  txt: 'text/plain',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ppt: 'application/vnd.ms-powerpoint',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc: 'application/msword',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pdf: 'application/pdf',
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  png: 'image/png',
 };
 
 const UploadButton = () => (
@@ -82,12 +79,10 @@ const Uploader: FC<MyUploadProps> = (props) => {
   };
 
   const acceptArr = useMemo(() => {
-    if(!accept) return [];
+    if (!accept) return [];
     const acceptList = accept.split(',');
-    return acceptList.map(m => extensionsMap[m]);
-  },[accept]);
-
-
+    return acceptList.map((m) => extensionsMap[m]);
+  }, [accept]);
   return (
     <>
       <Upload
@@ -101,12 +96,14 @@ const Uploader: FC<MyUploadProps> = (props) => {
         fileList={value}
         accept={acceptArr.join(',')}
         beforeUpload={(file, fileList) => {
-            if(acceptArr.length == 0) return true;
-            const isAllowType = acceptArr.some(n => n == file.type);
-            if (!isAllowType) {
-                message.error(`仅支持上传 ${accept} 文件`);
-            }
-            return isAllowType ? true : Upload.LIST_IGNORE;
+          if (acceptArr.length == 0) return true;
+          const isAllowType = acceptArr.some((n) => n == file.type);
+
+          if (!isAllowType) {
+            message.error(`仅支持上传 ${accept} 文件`);
+          }
+
+          return isAllowType ? true : Upload.LIST_IGNORE;
         }}
         onPreview={async (file) => {
           // console.log(file)

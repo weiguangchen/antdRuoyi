@@ -1,6 +1,7 @@
-import React, { useState, ReactNode, FC } from 'react';
+import type { ReactNode, FC } from 'react';
+import React, { useState } from 'react';
 import { Modal } from 'antd';
-import { ModalProps } from 'antd/lib/modal/Modal.d';
+import type { ModalProps } from 'antd/lib/modal/Modal.d';
 
 export interface ZxModalProps extends ModalProps {
     onFinish?: () => Promise<boolean> | boolean;

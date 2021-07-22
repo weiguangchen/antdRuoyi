@@ -26,37 +26,28 @@ function getBase64(file) {
 } // 扩展名
 
 const extensionsMap = {
-  'txt': 'text/plain',
-  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'ppt': 'application/vnd.ms-powerpoint',
-  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'doc': 'application/msword',
-  'xls': 'application/vnd.ms-excel',
-  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'pdf': 'application/pdf',
-  'jpg': 'image/jpeg',
-  'png': 'image/png',
+  txt: 'text/plain',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ppt: 'application/vnd.ms-powerpoint',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc: 'application/msword',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  png: 'image/png',
 };
 
 const Uploader: FC<MyUploadFileProps> = (props) => {
-  const {
-    value = [],
-    onChange,
-    limit = 0,
-    disabled = false,
-    accept,
-  } = props; 
-  console.log('value')
-  console.log(value)
-  // console.log('accept)
+  const { value = [], onChange, limit = 0, disabled = false, accept } = props;
+  console.log('value');
+  console.log(value); // console.log('accept)
 
   const acceptArr = useMemo(() => {
-    if(!accept) return [];
+    if (!accept) return [];
     const acceptList = accept.split(',');
-    return acceptList.map(m => extensionsMap[m]);
-  },[accept]);
-
-  // const newValue = useMemo(() => {
+    return acceptList.map((m) => extensionsMap[m]);
+  }, [accept]); // const newValue = useMemo(() => {
   //   return value.map(m => {
   //     m.name = `${m.name}.${m.url?.split('.').pop()}`
   //     return m;
@@ -75,15 +66,17 @@ const Uploader: FC<MyUploadFileProps> = (props) => {
         }}
         accept={acceptArr.join(',')}
         beforeUpload={(file, fileList) => {
-          console.log('file')
-          console.log(file)
-          console.log(accept)
-          // console.log('beforeUpload',fileList)
-          if(acceptArr.length == 0) return true;
-          const isAllowType = acceptArr.some(n => n == file.type);
+          console.log('file');
+          console.log(file);
+          console.log(accept); // console.log('beforeUpload',fileList)
+
+          if (acceptArr.length == 0) return true;
+          const isAllowType = acceptArr.some((n) => n == file.type);
+
           if (!isAllowType) {
             message.error(`仅支持上传 ${accept} 文件`);
           }
+
           return isAllowType ? true : Upload.LIST_IGNORE;
         }}
         fileList={value}

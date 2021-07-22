@@ -1,17 +1,32 @@
+import type { TableListItem as DeptTableListItem } from '../dept/data.d';
+
 export interface TableListItem {
-  key: number;
-  disabled?: boolean;
-  href: string;
+  admin: boolean;
   avatar: string;
-  name: string;
-  owner: string;
-  desc: string;
-  callNo: number;
+  createBy: string;
+  createTime: string;
+  delFlag: string;
+  dept: DeptTableListItem;
+  deptId: number;
+  email: string;
+  loginDate: string;
+  loginIp: string;
+  nickName: string;
+  params: any;
+  phonenumber: string;
+  postIds: number;
+  remark: string;
+  roleId: number
+  roleIds: any
+  roles: any;
+  salt: any;
+  searchValue: any;
+  sex: string;
   status: string;
-  updatedAt: Date;
-  createdAt: Date;
-  progress: number;
-  deptName: string;
+  updateBy: string;
+  updateTime: string;
+  userId: number;
+  userName: string;
 }
 
 export interface TableListPagination {
@@ -32,6 +47,6 @@ export interface TableListParams {
   key?: number;
   pageSize?: number;
   currentPage?: number;
-  filter?: { [key: string]: any[] };
-  sorter?: { [key: string]: any };
+  filter?: Record<string, any[]>;
+  sorter?: Record<string, any>;
 }

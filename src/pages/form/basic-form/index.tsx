@@ -1,17 +1,15 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Button, Card, DatePicker, Input, Form, InputNumber, Radio, Select, Tooltip } from 'antd';
-import type { Dispatch} from 'umi';
+import type { Dispatch } from 'umi';
 import { connect, FormattedMessage, formatMessage } from 'umi';
 import type { FC } from 'react';
 import React from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
 import styles from './style.less';
-
 const FormItem = Form.Item;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-
 interface BasicFormProps {
   submitting: boolean;
   dispatch: Dispatch;
@@ -23,20 +21,35 @@ const BasicForm: FC<BasicFormProps> = (props) => {
   const [showPublicUsers, setShowPublicUsers] = React.useState(false);
   const formItemLayout = {
     labelCol: {
-      xs: { span: 24 },
-      sm: { span: 7 },
+      xs: {
+        span: 24,
+      },
+      sm: {
+        span: 7,
+      },
     },
     wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 12 },
-      md: { span: 10 },
+      xs: {
+        span: 24,
+      },
+      sm: {
+        span: 12,
+      },
+      md: {
+        span: 10,
+      },
     },
   };
-
   const submitFormLayout = {
     wrapperCol: {
-      xs: { span: 24, offset: 0 },
-      sm: { span: 10, offset: 7 },
+      xs: {
+        span: 24,
+        offset: 0,
+      },
+      sm: {
+        span: 10,
+        offset: 7,
+      },
     },
   };
 
@@ -59,81 +72,88 @@ const BasicForm: FC<BasicFormProps> = (props) => {
   };
 
   return (
-    <PageContainer content={<FormattedMessage id="formandbasic-form.basic.description" />}>
+    <PageContainer content="表单页用于向用户收集或验证信息，基础表单常见于数据项较少的表单场景。">
       <Card bordered={false}>
         <Form
           hideRequiredMark
-          style={{ marginTop: 8 }}
+          style={{
+            marginTop: 8,
+          }}
           form={form}
           name="basic"
-          initialValues={{ public: '1' }}
+          initialValues={{
+            public: '1',
+          }}
           onFinish={onFinish}
           onFinishFailed={onFinishFailed}
           onValuesChange={onValuesChange}
         >
           <FormItem
             {...formItemLayout}
-            label={<FormattedMessage id="formandbasic-form.title.label" />}
+            label="标题"
             name="title"
             rules={[
               {
                 required: true,
-                message: formatMessage({ id: 'formandbasic-form.title.required' }),
+                message: '请输入标题',
               },
             ]}
           >
-            <Input placeholder={formatMessage({ id: 'formandbasic-form.title.placeholder' })} />
+            <Input placeholder="给目标起个名字" />
           </FormItem>
           <FormItem
             {...formItemLayout}
-            label={<FormattedMessage id="formandbasic-form.date.label" />}
+            label="起止日期"
             name="date"
             rules={[
               {
                 required: true,
-                message: formatMessage({ id: 'formandbasic-form.date.required' }),
+                message: '请选择起止日期',
               },
             ]}
           >
             <RangePicker
-              style={{ width: '100%' }}
-              placeholder={[
-                formatMessage({ id: 'formandbasic-form.placeholder.start' }),
-                formatMessage({ id: 'formandbasic-form.placeholder.end' }),
-              ]}
+              style={{
+                width: '100%',
+              }}
+              placeholder={['开始日期', '结束日期']}
             />
           </FormItem>
           <FormItem
             {...formItemLayout}
-            label={<FormattedMessage id="formandbasic-form.goal.label" />}
+            label="目标描述"
             name="goal"
             rules={[
               {
                 required: true,
-                message: formatMessage({ id: 'formandbasic-form.goal.required' }),
+                message: '请输入目标描述',
               },
             ]}
           >
             <TextArea
-              style={{ minHeight: 32 }}
-              placeholder={formatMessage({ id: 'formandbasic-form.goal.placeholder' })}
+              style={{
+                minHeight: 32,
+              }}
+              placeholder="请输入你的阶段性工作目标"
               rows={4}
             />
           </FormItem>
           <FormItem
             {...formItemLayout}
-            label={<FormattedMessage id="formandbasic-form.standard.label" />}
+            label="衡量标准"
             name="standard"
             rules={[
               {
                 required: true,
-                message: formatMessage({ id: 'formandbasic-form.standard.required' }),
+                message: '请输入衡量标准',
               },
             ]}
           >
             <TextArea
-              style={{ minHeight: 32 }}
-              placeholder={formatMessage({ id: 'formandbasic-form.standard.placeholder' })}
+              style={{
+                minHeight: 32,
+              }}
+              placeholder="请输入衡量标准"
               rows={4}
             />
           </FormItem>
@@ -141,98 +161,96 @@ const BasicForm: FC<BasicFormProps> = (props) => {
             {...formItemLayout}
             label={
               <span>
-                <FormattedMessage id="formandbasic-form.client.label" />
+                客户
                 <em className={styles.optional}>
-                  <FormattedMessage id="formandbasic-form.form.optional" />
-                  <Tooltip title={<FormattedMessage id="formandbasic-form.label.tooltip" />}>
-                    <InfoCircleOutlined style={{ marginRight: 4 }} />
+                  （选填）
+                  <Tooltip title="目标的服务对象">
+                    <InfoCircleOutlined
+                      style={{
+                        marginRight: 4,
+                      }}
+                    />
                   </Tooltip>
                 </em>
               </span>
             }
             name="client"
           >
-            <Input placeholder={formatMessage({ id: 'formandbasic-form.client.placeholder' })} />
+            <Input placeholder="请描述你服务的客户，内部客户直接 @姓名／工号" />
           </FormItem>
           <FormItem
             {...formItemLayout}
             label={
               <span>
-                <FormattedMessage id="formandbasic-form.invites.label" />
-                <em className={styles.optional}>
-                  <FormattedMessage id="formandbasic-form.form.optional" />
-                </em>
+                邀评人
+                <em className={styles.optional}>（选填）</em>
               </span>
             }
             name="invites"
           >
-            <Input placeholder={formatMessage({ id: 'formandbasic-form.invites.placeholder' })} />
+            <Input placeholder="请直接 @姓名／工号，最多可邀请 5 人" />
           </FormItem>
           <FormItem
             {...formItemLayout}
             label={
               <span>
-                <FormattedMessage id="formandbasic-form.weight.label" />
-                <em className={styles.optional}>
-                  <FormattedMessage id="formandbasic-form.form.optional" />
-                </em>
+                权重
+                <em className={styles.optional}>（选填）</em>
               </span>
             }
             name="weight"
           >
-            <InputNumber
-              placeholder={formatMessage({ id: 'formandbasic-form.weight.placeholder' })}
-              min={0}
-              max={100}
-            />
+            <InputNumber placeholder="请输入" min={0} max={100} />
             <span className="ant-form-text">%</span>
           </FormItem>
           <FormItem
             {...formItemLayout}
-            label={<FormattedMessage id="formandbasic-form.public.label" />}
-            help={<FormattedMessage id="formandbasic-form.label.help" />}
+            label="目标公开"
+            help="客户、邀评人默认被分享"
             name="publicType"
           >
             <div>
               <Radio.Group>
-                <Radio value="1">
-                  <FormattedMessage id="formandbasic-form.radio.public" />
-                </Radio>
-                <Radio value="2">
-                  <FormattedMessage id="formandbasic-form.radio.partially-public" />
-                </Radio>
-                <Radio value="3">
-                  <FormattedMessage id="formandbasic-form.radio.private" />
-                </Radio>
+                <Radio value="1">公开</Radio>
+                <Radio value="2">部分公开</Radio>
+                <Radio value="3">不公开</Radio>
               </Radio.Group>
-              <FormItem style={{ marginBottom: 0 }} name="publicUsers">
+              <FormItem
+                style={{
+                  marginBottom: 0,
+                }}
+                name="publicUsers"
+              >
                 <Select
                   mode="multiple"
-                  placeholder={formatMessage({ id: 'formandbasic-form.publicUsers.placeholder' })}
+                  placeholder="公开给"
                   style={{
                     margin: '8px 0',
                     display: showPublicUsers ? 'block' : 'none',
                   }}
                 >
-                  <Option value="1">
-                    <FormattedMessage id="formandbasic-form.option.A" />
-                  </Option>
-                  <Option value="2">
-                    <FormattedMessage id="formandbasic-form.option.B" />
-                  </Option>
-                  <Option value="3">
-                    <FormattedMessage id="formandbasic-form.option.C" />
-                  </Option>
+                  <Option value="1">同事甲</Option>
+                  <Option value="2">同事乙</Option>
+                  <Option value="3">同事丙</Option>
                 </Select>
               </FormItem>
             </div>
           </FormItem>
-          <FormItem {...submitFormLayout} style={{ marginTop: 32 }}>
+          <FormItem
+            {...submitFormLayout}
+            style={{
+              marginTop: 32,
+            }}
+          >
             <Button type="primary" htmlType="submit" loading={submitting}>
-              <FormattedMessage id="formandbasic-form.form.submit" />
+              提交
             </Button>
-            <Button style={{ marginLeft: 8 }}>
-              <FormattedMessage id="formandbasic-form.form.save" />
+            <Button
+              style={{
+                marginLeft: 8,
+              }}
+            >
+              保存
             </Button>
           </FormItem>
         </Form>

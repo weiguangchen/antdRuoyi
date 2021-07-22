@@ -4,7 +4,6 @@ import {
   Divider,
   message,
   Input,
-  Drawer,
   Switch,
   Modal,
   Form,
@@ -13,8 +12,6 @@ import React, { useState, useRef } from 'react';
 import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
 import type { ProColumns, ActionType } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
-import ProDescriptions from '@ant-design/pro-descriptions';
-import type { FormValueType } from './components/UpdateForm';
 import type { TableListItem } from './data.d';
 import {
   listUser,
@@ -25,90 +22,15 @@ import {
 import AddForm from './components/Form';
 import { getUser } from './service';
 
-/**
- * 添加节点
- * @param fields
- */
-const handleAdd = async (fields: TableListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({ ...fields });
-    hide();
-    message.success('添加成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('添加失败请重试！');
-    return false;
-  }
-};
-
-/**
- * 更新节点
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('正在配置');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-
-    message.success('配置成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('配置失败请重试！');
-    return false;
-  }
-};
-
-/**
- *  删除节点
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: TableListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('删除成功，即将刷新');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('删除失败，请重试');
-    return false;
-  }
-};
-
 const TableList: React.FC<{}> = () => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [updateFormValues, setUpdateFormValues] = useState({});
   const actionRef = useRef<ActionType>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [row, setRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
   const [form] = Form.useForm();
 
-  // const { run: runGetUser, loading: userLoading } = useRequest(getUser, {
-  //   manual: true,
-  //   formatResult: (res) => res,
-  //   onSuccess(res) {
-  //     const { data, postIds, posts, roleIds, roles } = res;
-  //     formRef?.current?.setFieldsValue({
-  //       status: '0',
-  //       password: '123456',
-  //       ...data,
-  //       postIds: postIds.map((m) => `${m}`),
-  //       roleIds: roleIds.map((m) => `${m}`),
-  //     });
-  //   },
-  // });
 
   const columns: ProColumns<TableListItem>[] = [
     {
@@ -127,7 +49,7 @@ const TableList: React.FC<{}> = () => {
     {
       title: '部门',
       dataIndex: 'dept',
-      renderText: (dept: TableListItem) => dept ? `${dept.deptName}` : '',
+      renderText: (dept) => dept ? `${dept.deptName}` : '',
     },
     {
       title: '手机号码',
@@ -138,7 +60,7 @@ const TableList: React.FC<{}> = () => {
       dataIndex: 'status',
       render: (_, record) => (
         <Switch
-          checked={_ == '0'}
+          checked={_ === '0'}
           onChange={(checked) => {
             Modal.confirm({
               title: '提示',
@@ -178,13 +100,13 @@ const TableList: React.FC<{}> = () => {
                 const { data, postIds, roleIds } = await getUser(userId);
                 const values = {
                   data,
-                  postIds: postIds.map((m) => m),
-                  roleIds: roleIds.map((m) => m),
+                  postIds,
+                  roleIds,
                 }
                 setUpdateFormValues(values);
                 setModalVisible(true);
               } catch (err) {
-                console.log(err)
+                message.error('修改用户失败！')
               }
             }}
           >
@@ -281,29 +203,37 @@ const TableList: React.FC<{}> = () => {
           onChange: (_, selectedRows) => setSelectedRows(selectedRows),
         }}
       />
+
       {selectedRowsState?.length > 0 && (
         <FooterToolbar
           extra={
             <div>
-              已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
-                  项&nbsp;&nbsp;
-                  {/* <span>
-                    服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo, 0)}{' '}
-                    万
-                  </span> */}
+              已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}项
             </div>
           }
         >
           <Button
             onClick={async () => {
-              await handleRemove(selectedRowsState);
-              setSelectedRows([]);
-              actionRef.current?.reloadAndRest?.();
+              const userIds = selectedRowsState.map(m => m.userId);
+              Modal.confirm({
+                title: '提示',
+                content: '是否确认删除所选择用户？',
+                okText: '确认',
+                onOk() {
+                  return delUser(userIds)
+                    .then(() => {
+                      setSelectedRows([]);
+                      actionRef.current?.reloadAndRest?.();
+                    })
+                    .catch((err) => {
+                      message.error(err.msg);
+                    });
+                },
+              });
             }}
           >
             批量删除
-              </Button>
-          {/* <Button type="primary">批量审批</Button> */}
+          </Button>
         </FooterToolbar>
       )}
 
@@ -319,65 +249,6 @@ const TableList: React.FC<{}> = () => {
         }}
       />
 
-      {/* <CreateForm onCancel={() => handleModalVisible(false)} modalVisible={createModalVisible}>
-            <ProTable<TableListItem, TableListItem>
-              onSubmit={async (value) => {
-                const success = await handleAdd(value);
-                if (success) {
-                  handleModalVisible(false);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                }
-              }}
-              rowKey="key"
-              type="form"
-              columns={columns}
-            />
-          </CreateForm>
-          {stepFormValues && Object.keys(stepFormValues).length ? (
-            <UpdateForm
-              onSubmit={async (value) => {
-                const success = await handleUpdate(value);
-                if (success) {
-                  handleUpdateModalVisible(false);
-                  setStepFormValues({});
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                }
-              }}
-              onCancel={() => {
-                handleUpdateModalVisible(false);
-                setStepFormValues({});
-              }}
-              updateModalVisible={updateModalVisible}
-              values={stepFormValues}
-            />
-          ) : null} */}
-
-      <Drawer
-        width={600}
-        visible={!!row}
-        onClose={() => {
-          setRow(undefined);
-        }}
-        closable={false}
-      >
-        {row?.name && (
-          <ProDescriptions<TableListItem>
-            column={2}
-            title={row?.name}
-            request={async () => ({
-              data: row || {},
-            })}
-            params={{
-              id: row?.name,
-            }}
-            columns={columns}
-          />
-        )}
-      </Drawer>
     </PageContainer>
   );
 };

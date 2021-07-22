@@ -5,7 +5,7 @@ import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
 import type { ProColumns, ActionType } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
 import ProDescriptions from '@ant-design/pro-descriptions';
-import type { TableListItem } from './data.d';
+import type { TableListItem, TableListParams } from './data.d';
 import { listDept, delDept } from './service';
 import AddForm from './components/Form';
 import { handleTree } from '@/utils';
@@ -49,11 +49,11 @@ const TableList: React.FC<{}> = () => {
           <a
             onClick={() => {
               setModalVisible(true);
-              const row = {
+              const rowData = {
                 ...record,
                 editRoot: record.parentId === 0,
               };
-              setUpdateFormValues(row);
+              setUpdateFormValues(rowData);
             }}
           >
             修改
@@ -102,7 +102,7 @@ const TableList: React.FC<{}> = () => {
 
   return (
     <PageContainer>
-      <ProTable<TableListItem>
+      <ProTable<TableListItem,TableListParams>
         headerTitle="查询表格"
         actionRef={actionRef}
         rowKey="deptId"
@@ -130,9 +130,6 @@ const TableList: React.FC<{}> = () => {
           })
         )}
         columns={columns}
-      // rowSelection={{
-      //   onChange: (_, selectedRows) => setSelectedRows(selectedRows),
-      // }}
       />
       {selectedRowsState?.length > 0 && (
         <FooterToolbar
@@ -153,18 +150,14 @@ const TableList: React.FC<{}> = () => {
                 okText: '确认',
                 onOk() {
                   const deptIds = selectedRowsState.map((m) => m.deptId);
-                  return new Promise((resolve, reject) => {
-                    delDept(deptIds)
-                      .then((res) => {
-                        setSelectedRows([]);
-                        actionRef.current?.reloadAndRest?.();
-                        resolve();
-                      })
-                      .catch((err) => {
-                        message.error(err.msg);
-                        reject();
-                      });
-                  });
+                  return delDept(deptIds)
+                    .then(() => {
+                      setSelectedRows([]);
+                      actionRef.current?.reloadAndRest?.();
+                    })
+                    .catch((err) => {
+                      message.error(err.msg);
+                    });
                 },
               });
             }}
